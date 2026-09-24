@@ -1,0 +1,6 @@
+.env
+.git
+.gitignore
+live-subs-app
+.DS_Store
+*.log

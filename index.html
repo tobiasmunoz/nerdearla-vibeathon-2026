@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nerdearla Live Subs — Ultra-Low Latency Go Engine</title>
+    <style>
+        :root {
+            --accent: #FFD700;
+            --accent-dim: #b8981a;
+            --bg-body: #0d1117;
+            --bg-panel: #161b22;
+            --bg-input: #0d1117;
+            --bg-card: rgba(255,255,255,0.03);
+            --bg-card-active: rgba(255,215,0,0.07);
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --border: #30363d;
+            --success: #3fb950;
+            --error: #f85149;
+            --info: #58a6ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            background: var(--bg-body);
+        }
+
+        /* ==== OBS OVERLAY MODE ==== */
+        body.overlay-mode {
+            background-color: transparent !important;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100vh;
+        }
+        body.overlay-mode #app-container { display: none !important; }
+        body.overlay-mode #subtitle-overlay { display: flex !important; }
+
+        #subtitle-overlay {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            width: 100%;
+            height: 100vh;
+            position: fixed;
+            top: 0; left: 0;
+            pointer-events: none;
+            padding-bottom: 40px;
+            gap: 8px;
+        }
+
+        .overlay-line {
+            background-color: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 12px 28px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 85%;
+            word-wrap: break-word;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #overlay-transcription { color: #8b949e; font-size: 20px; font-weight: 500; }
+        #overlay-translation { color: var(--accent); font-size: 28px; font-weight: 700; }
+
+        /* ==== MAIN APP CONTAINER ==== */
+        #app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 16px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navigation Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand h1 {
+            font-size: 20px;
+            color: var(--accent);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .brand-badge {
+            background: #238636;
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: var(--bg-body);
+            color: var(--text);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* Panel Card */
+        .panel-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        /* Form elements */
+        .row { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+        .field { flex: 1; min-width: 200px; }
+        .field label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .field input, .field select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .field input:focus, .field select:focus {
+            border-color: var(--accent);
+        }
+
+        .lang-row { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 14px; }
+        .lang-swap {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--accent);
+            font-size: 18px;
+            padding: 9px 14px;
+            cursor: pointer;
+            margin-bottom: 0px;
+            height: 42px;
+        }
+        .lang-swap:hover { background: rgba(255,215,0,0.1); border-color: var(--accent); }
+
+        /* Buttons */
+        .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-start { background: var(--accent); color: #000; flex: 2; }
+        .btn-start:hover { background: #ffe033; }
+        .btn-stop { background: var(--error); color: #fff; flex: 1; }
+        .btn-stop:hover { opacity: 0.9; }
+        .btn-secondary { background: var(--bg-input); border: 1px solid var(--border); color: var(--text); }
+        .btn-secondary:hover { border-color: var(--text-muted); }
+        .btn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; border-color: transparent; }
+
+        /* Status indicator */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 16px;
+            padding: 10px 14px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .status-left { display: flex; align-items: center; gap: 8px; }
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+        .status-dot.connected { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-dot.error { background: var(--error); box-shadow: 0 0 8px var(--error); }
+
+        /* Transcript Viewer */
+        .transcript-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .transcript-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .transcript-header-bar label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .transcript-log {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            max-height: 400px;
+            min-height: 200px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 12px;
+        }
+        .turn-card {
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .turn-card.active {
+            background: var(--bg-card-active);
+            border-left-color: var(--accent);
+        }
+        .turn-original {
+            color: #8b949e;
+            font-size: 13px;
+            line-height: 1.4;
+            min-height: 16px;
+        }
+        .turn-translation {
+            color: var(--accent);
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-top: 4px;
+            min-height: 18px;
+        }
+        .transcript-placeholder {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 13px;
+        }
+
+        /* Export Bar */
+        .export-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        /* Quick Links / OBS */
+        .integration-box {
+            margin-top: 16px;
+            padding: 12px 14px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            word-break: break-all;
+        }
+        .integration-box strong { color: var(--text); }
+        .integration-box a { color: var(--accent); text-decoration: none; }
+        .integration-box a:hover { text-decoration: underline; }
+
+        /* Audience View Specific */
+        #audience-view { display: none; }
+        .audience-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .audience-screen {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            min-height: 450px;
+            max-height: 600px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .audience-turn {
+            padding: 16px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.02);
+            border-left: 4px solid var(--accent);
+        }
+        .audience-original {
+            color: #8b949e;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+        .audience-translation {
+            color: var(--accent);
+            font-size: 22px;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        /* Monitor View Specific */
+        #monitor-view { display: none; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-top: 6px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .stage-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .stage-table th, .stage-table td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .stage-table th {
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==== OBS OVERLAY CONTAINER ==== -->
+    <div id="subtitle-overlay">
+        <div class="overlay-line" id="overlay-transcription"></div>
+        <div class="overlay-line" id="overlay-translation">Esperando audio...</div>
+    </div>
+
+    <!-- ==== APP CONTAINER ==== -->
+    <div id="app-container">
+        <header>
+            <div class="brand">
+                <h1>🎙️ Nerdearla Live Subs</h1>
+                <span class="brand-badge">Go 1.23 Engine</span>
+            </div>
+            <nav class="nav-tabs">
+                <button class="tab-btn active" onclick="switchView('console')">🎛️ Presenter Console</button>
+                <button class="tab-btn" onclick="switchView('audience')">👥 Audience View</button>
+                <button class="tab-btn" onclick="switchView('monitor')">📊 Stage Monitor</button>
+            </nav>
+        </header>
+
+        <!-- ========================================== -->
+        <!-- 1. PRESENTER CONSOLE VIEW                   -->
+        <!-- ========================================== -->
+        <main id="console-view">
+            <div class="panel-card">
+                <div class="row">
+                    <div class="field">
+                        <label for="session-id">Stage / Session ID</label>
+                        <input type="text" id="session-id" value="stage-1" placeholder="e.g. stage-1, stage-2, keynote">
+                    </div>
+                    <div class="field">
+                        <label for="audio-source">Audio Input Source</label>
+                        <select id="audio-source" onchange="toggleAudioSourceUI()">
+                            <option value="mic">🎙️ Live Microphone</option>
+                            <option value="sample">📁 Sample Talk Audio (Built-in Test)</option>
+                            <option value="upload">📤 Upload Audio File (.wav, .mp3)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Mic device picker -->
+                <div class="field" id="mic-picker-row" style="margin-bottom: 14px;">
+                    <label for="mic-select">Select Microphone</label>
+                    <select id="mic-select">
+                        <option value="">Loading microphones...</option>
+                    </select>
+                </div>
+
+                <!-- File upload picker (hidden by default) -->
+                <div class="field" id="file-picker-row" style="display:none; margin-bottom: 14px;">
+                    <label for="audio-file-input">Choose Audio File</label>
+                    <input type="file" id="audio-file-input" accept="audio/*">
+                </div>
+
+                <!-- Sample Audio info (hidden by default) -->
+                <div class="integration-box" id="sample-info-box" style="display:none; margin-bottom: 14px;">
+                    💡 <strong>Test Sample Talk Loaded:</strong> <code>samples/sample-talk-test.wav</code>. Click "Start Streaming" to feed this audio directly to the Gemini Live API without needing a microphone.
+                </div>
+
+                <!-- Languages row -->
+                <div class="lang-row">
+                    <div class="field">
+                        <label for="source-lang">Speaker Language</label>
+                        <select id="source-lang">
+                            <option value="en">🇺🇸 English</option>
+                            <option value="es" selected>🇦🇷 Español</option>
+                            <option value="pt">🇧🇷 Português</option>
+                        </select>
+                    </div>
+                    <button class="lang-swap" onclick="swapLanguages()" title="Swap languages">⇄</button>
+                    <div class="field">
+                        <label for="target-lang">Translate Subtitles To</label>
+                        <select id="target-lang">
+                            <option value="es" selected>🇦🇷 Español</option>
+                            <option value="en">🇺🇸 English</option>
+                            <option value="pt">🇧🇷 Português</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="btn-row">
+                    <button class="btn btn-start" id="btn-start" onclick="startSession()">
+                        ▶ Start Streaming & Subtitles
+                    </button>
+                    <button class="btn btn-stop" id="btn-stop" onclick="stopSession()" disabled>
+                        ■ Stop
+                    </button>
+                </div>
+
+                <div class="status-bar">
+                    <div class="status-left">
+                        <div class="status-dot" id="status-dot"></div>
+                        <span id="status-text">Ready</span>
+                    </div>
+                    <div id="listener-counter" style="color: var(--text-muted); font-size: 12px;">0 viewers connected</div>
+                </div>
+            </div>
+
+            <!-- Transcript Section -->
+            <div class="transcript-container">
+                <div class="transcript-header-bar">
+                    <label id="transcript-header">Live Session Subtitles</label>
+                    <div class="export-bar">
+                        <button class="btn btn-secondary" onclick="exportTranscript('srt')" style="padding: 6px 12px; font-size: 12px;">📥 Export SRT</button>
+                        <button class="btn btn-secondary" onclick="exportTranscript('vtt')" style="padding: 6px 12px; font-size: 12px;">📥 Export VTT</button>
+                        <button class="btn btn-secondary" onclick="exportTranscript('txt')" style="padding: 6px 12px; font-size: 12px;">📥 Export TXT</button>
+                    </div>
+                </div>
+
+                <div class="transcript-log" id="transcript-log">
+                    <div class="transcript-placeholder" id="transcript-placeholder">
+                        Start streaming or play test audio to see live Spanish & English transcription here.<br>
+                        Scroll up anytime to view past remarks.
+                    </div>
+                </div>
+
+                <div class="integration-box" id="obs-link" style="display:none;">
+                    🎥 <strong>OBS / vMix Transparent Browser Overlay:</strong><br>
+                    <a id="obs-url" href="#" target="_blank"></a>
+                </div>
+            </div>
+        </main>
+
+        <!-- ========================================== -->
+        <!-- 2. AUDIENCE VIEWER VIEW                     -->
+        <!-- ========================================== -->
+        <section id="audience-view">
+            <div class="panel-card" style="padding: 16px 20px;">
+                <div class="audience-controls">
+                    <div class="field" style="max-width: 250px;">
+                        <label for="audience-stage-select">Select Stage</label>
+                        <select id="audience-stage-select" onchange="connectAudienceStream()">
+                            <option value="stage-1">Stage 1 (Main Hall)</option>
+                            <option value="stage-2">Stage 2 (Workshop)</option>
+                            <option value="keynote">Keynote Stage</option>
+                        </select>
+                    </div>
+                    <div class="field" style="max-width: 250px;">
+                        <label for="audience-lang-mode">Subtitles Mode</label>
+                        <select id="audience-lang-mode" onchange="updateAudienceViewMode()">
+                            <option value="translation">Translated Subtitles Only</option>
+                            <option value="dual" selected>Dual View (Original + Translation)</option>
+                            <option value="original">Original Speech Only</option>
+                        </select>
+                    </div>
+                    <div style="margin-left: auto; display: flex; gap: 8px; align-items: flex-end;">
+                        <button class="btn btn-secondary" onclick="adjustFontSize(-2)" title="Smaller text">A-</button>
+                        <button class="btn btn-secondary" onclick="adjustFontSize(2)" title="Larger text">A+</button>
+                    </div>
+                </div>
+
+                <div class="audience-screen" id="audience-screen">
+                    <div class="transcript-placeholder" id="audience-placeholder">
+                        Connecting to stage stream... Subtitles will appear live as speakers talk.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 3. PRODUCTION MONITOR VIEW                  -->
+        <!-- ========================================== -->
+        <section id="monitor-view">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Active Stages</div>
+                    <div class="stat-value" id="stat-active-stages">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Connected Viewers</div>
+                    <div class="stat-value" id="stat-total-viewers">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Streaming Backend</div>
+                    <div class="stat-value" style="font-size: 20px; margin-top: 12px; color: var(--success);">Golang + Gemini Live</div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <h3 style="margin-bottom: 16px; font-size: 16px;">Real-Time Stage Concurrency</h3>
+                <table class="stage-table">
+                    <thead>
+                        <tr>
+                            <th>Stage ID</th>
+                            <th>Active Viewers</th>
+                            <th>Status</th>
+                            <th>Quick OBS Overlay Link</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monitor-stages-body">
+                        <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No active broadcast sessions.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- ==== CLIENT SCRIPT ==== -->
+    <script>
+    (function() {
+        'use strict';
+
+        // State
+        let audioContext = null;
+        let mediaStream = null;
+        let workletNode = null;
+        let websocket = null;
+        let outputWs = null;
+        let eventSource = null;
+        let isRunning = false;
+        let isPlayingFile = false;
+
+        // Transcript storage for export
+        const turnsHistory = []; // { start: timestamp, orig: string, trans: string }
+
+        let currentCard = null;
+        let currentTranscription = '';
+        let currentTranslation = '';
+        let userHasScrolled = false;
+        let transcribeDone = false;
+        let translateDone = false;
+        let turnStartTime = 0;
+
+        // Audience State
+        let audienceWs = null;
+        let audienceFontSize = 22;
+
+        const params = new URLSearchParams(window.location.search);
+        const isOverlayMode = params.get('overlay') === 'true';
+        const overlaySessionId = params.get('session');
+        const viewParam = params.get('view');
+
+        // ============================================================
+        // 1. OBS OVERLAY MODE
+        // ============================================================
+        if (isOverlayMode) {
+            document.body.classList.add('overlay-mode');
+            const targetSession = overlaySessionId || 'stage-1';
+            let overlayTranscription = '';
+            let overlayTranslation = '';
+
+            connectSSE(targetSession, {
+                onTranscription: function(text) {
+                    overlayTranscription += text;
+                    const el = document.getElementById('overlay-transcription');
+                    el.textContent = trimText(overlayTranscription, 140);
+                },
+                onTranslation: function(text) {
+                    overlayTranslation += text;
+                    const el = document.getElementById('overlay-translation');
+                    el.textContent = trimText(overlayTranslation, 140);
+                },
+                onTranscriptionDone: function() { overlayTranscription = ''; },
+                onTranslationDone: function() { overlayTranslation = ''; },
+                onStatus: function() {}
+            });
+            return;
+        }
+
+        // Handle view query param
+        if (viewParam === 'audience') {
+            switchView('audience');
+        } else if (viewParam === 'monitor') {
+            switchView('monitor');
+        }
+
+        // ============================================================
+        // 2. VIEW SWITCHING
+        // ============================================================
+        window.switchView = function(viewName) {
+            document.getElementById('console-view').style.display = viewName === 'console' ? 'block' : 'none';
+            document.getElementById('audience-view').style.display = viewName === 'audience' ? 'block' : 'none';
+            document.getElementById('monitor-view').style.display = viewName === 'monitor' ? 'block' : 'none';
+
+            document.querySelectorAll('.tab-btn').forEach(function(btn, idx) {
+                btn.classList.toggle('active',
+                    (viewName === 'console' && idx === 0) ||
+                    (viewName === 'audience' && idx === 1) ||
+                    (viewName === 'monitor' && idx === 2)
+                );
+            });
+
+            if (viewName === 'audience') {
+                connectAudienceStream();
+            } else if (viewName === 'monitor') {
+                refreshMonitorStats();
+            }
+        };
+
+        // ============================================================
+        // 3. AUDIO SOURCE TOGGLE & MICROPHONE LOADING
+        // ============================================================
+        window.toggleAudioSourceUI = function() {
+            const src = document.getElementById('audio-source').value;
+            document.getElementById('mic-picker-row').style.display = src === 'mic' ? 'block' : 'none';
+            document.getElementById('file-picker-row').style.display = src === 'upload' ? 'block' : 'none';
+            document.getElementById('sample-info-box').style.display = src === 'sample' ? 'block' : 'none';
+        };
+
+        (async function loadMicrophones() {
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    await navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(function(s) { s.getTracks().forEach(function(t) { t.stop(); }); });
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const select = document.getElementById('mic-select');
+                    select.innerHTML = '';
+                    const inputs = devices.filter(function(d) { return d.kind === 'audioinput'; });
+                    if (inputs.length === 0) {
+                        select.innerHTML = '<option value="">No microphones found</option>';
+                        return;
+                    }
+                    inputs.forEach(function(device, i) {
+                        const opt = document.createElement('option');
+                        opt.value = device.deviceId;
+                        opt.textContent = device.label || ('Microphone ' + (i + 1));
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                document.getElementById('mic-select').innerHTML =
+                    '<option value="">Microphone access denied (or using sample mode)</option>';
+            }
+        })();
+
+        window.swapLanguages = function() {
+            const src = document.getElementById('source-lang');
+            const tgt = document.getElementById('target-lang');
+            const tmp = src.value;
+            src.value = tgt.value;
+            tgt.value = tmp;
+        };
+
+        // ============================================================
+        // 4. STREAMING ENGINE (MIC OR SAMPLE FILE)
+        // ============================================================
+        window.startSession = async function() {
+            const sessionId = document.getElementById('session-id').value.trim();
+            if (!sessionId) { alert('Please enter a Stage/Session ID'); return; }
+
+            const sourceLang = document.getElementById('source-lang').value;
+            const targetLang = document.getElementById('target-lang').value;
+            if (sourceLang === targetLang) { alert('Source and target languages must be different'); return; }
+
+            const inputType = document.getElementById('audio-source').value;
+            setStatus('connecting', 'Connecting to Gemini Live...');
+            setButtons(false);
+            clearTranscript();
+
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+
+                // Establish Audio Input WebSocket to Go server
+                const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = wsProto + '//' + location.host + '/ws/audio/' + sessionId;
+                websocket = new WebSocket(wsUrl);
+                websocket.binaryType = 'arraybuffer';
+
+                websocket.onopen = function() {
+                    // Send language configuration handshake
+                    websocket.send(JSON.stringify({ source: sourceLang, target: targetLang }));
+                    setStatus('connected', 'Live Streaming (' + sourceLang.toUpperCase() + ' → ' + targetLang.toUpperCase() + ')');
+                    isRunning = true;
+
+                    // Update header & OBS link
+                    const obsUrl = location.origin + '?overlay=true&session=' + sessionId;
+                    document.getElementById('obs-url').href = obsUrl;
+                    document.getElementById('obs-url').textContent = obsUrl;
+                    document.getElementById('obs-link').style.display = 'block';
+
+                    // Start Audio Input based on mode
+                    if (inputType === 'mic') {
+                        startMicCapture();
+                    } else if (inputType === 'sample') {
+                        playAudioUrl('/samples/sample-talk-test.wav');
+                    } else if (inputType === 'upload') {
+                        const fileInput = document.getElementById('audio-file-input');
+                        if (!fileInput.files || fileInput.files.length === 0) {
+                            alert('Please select an audio file first');
+                            stopSession();
+                            return;
+                        }
+                        playAudioFile(fileInput.files[0]);
+                    }
+                };
+
+                websocket.onerror = function() {
+                    setStatus('error', 'Audio WebSocket connection failed');
+                    stopSession();
+                };
+
+                websocket.onclose = function() {
+                    if (isRunning) {
+                        setStatus('error', 'Disconnected from server');
+                        stopSession();
+                    }
+                };
+
+                // Output WebSocket to display live subtitles
+                const streamUrl = wsProto + '//' + location.host + '/ws/stream/' + sessionId;
+                connectOutputWs(streamUrl, {
+                    onTranscription: function(text) {
+                        currentTranscription += text;
+                        ensureActiveCard();
+                        currentCard.querySelector('.turn-original').textContent = currentTranscription;
+                        autoScroll();
+                    },
+                    onTranslation: function(text) {
+                        currentTranslation += text;
+                        ensureActiveCard();
+                        currentCard.querySelector('.turn-translation').textContent = currentTranslation;
+                        autoScroll();
+                    },
+                    onTranscriptionDone: function() {
+                        transcribeDone = true;
+                        if (transcribeDone && translateDone) finalizeTurn();
+                    },
+                    onTranslationDone: function() {
+                        translateDone = true;
+                        if (transcribeDone && translateDone) finalizeTurn();
+                    },
+                    onStatus: function(text) {
+                        addStatusCard(text);
+                    }
+                });
+
+            } catch (err) {
+                setStatus('error', 'Error: ' + err.message);
+                setButtons(true);
+            }
+        };
+
+        // Microphone Capture via AudioWorklet
+        async function startMicCapture() {
+            const deviceId = document.getElementById('mic-select').value;
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    channelCount: 1,
+                    sampleRate: { ideal: 16000 },
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
+            });
+
+            const source = audioContext.createMediaStreamSource(mediaStream);
+            const processorCode = [
+                'class PCM16Processor extends AudioWorkletProcessor {',
+                '  constructor() {',
+                '    super();',
+                '    this.buffer = new Int16Array(256);',
+                '    this.offset = 0;',
+                '  }',
+                '  process(inputs) {',
+                '    const ch = inputs[0][0];',
+                '    if (!ch) return true;',
+                '    for (let i = 0; i < ch.length; i++) {',
+                '      const s = Math.max(-1, Math.min(1, ch[i]));',
+                '      this.buffer[this.offset++] = s < 0 ? s * 0x8000 : s * 0x7FFF;',
+                '    }',
+                '    if (this.offset >= 256) {',
+                '      this.port.postMessage(this.buffer.buffer.slice(0));',
+                '      this.offset = 0;',
+                '    }',
+                '    return true;',
+                '  }',
+                '}',
+                "registerProcessor('pcm16-processor', PCM16Processor);"
+            ].join('\n');
+
+            const blob = new Blob([processorCode], { type: 'application/javascript' });
+            const workletUrl = URL.createObjectURL(blob);
+            await audioContext.audioWorklet.addModule(workletUrl);
+            URL.revokeObjectURL(workletUrl);
+
+            workletNode = new AudioWorkletNode(audioContext, 'pcm16-processor');
+            workletNode.port.onmessage = function(e) {
+                if (!isRunning || !websocket || websocket.readyState !== WebSocket.OPEN) return;
+                websocket.send(e.data);
+            };
+
+            source.connect(workletNode);
+            workletNode.connect(audioContext.destination);
+        }
+
+        // Play audio from file or URL and stream 16kHz PCM chunks
+        async function playAudioFile(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            decodeAndStreamBuffer(arrayBuffer);
+        }
+
+        async function playAudioUrl(url) {
+            const resp = await fetch(url);
+            const arrayBuffer = await resp.arrayBuffer();
+            decodeAndStreamBuffer(arrayBuffer);
+        }
+
+        async function decodeAndStreamBuffer(arrayBuffer) {
+            try {
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                const rawChannel = audioBuffer.getChannelData(0);
+                const originalRate = audioBuffer.sampleRate;
+                const targetRate = 16000;
+
+                // Resample to 16kHz
+                const resampledLength = Math.round(rawChannel.length * targetRate / originalRate);
+                const pcm16Data = new Int16Array(resampledLength);
+                for (let i = 0; i < resampledLength; i++) {
+                    const origIndex = Math.min(Math.floor(i * originalRate / targetRate), rawChannel.length - 1);
+                    const s = Math.max(-1, Math.min(1, rawChannel[origIndex]));
+                    pcm16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                }
+
+                // Stream in 256-sample chunks (16ms per chunk)
+                const chunkSize = 256;
+                let offset = 0;
+                isPlayingFile = true;
+
+                const timer = setInterval(function() {
+                    if (!isRunning || !isPlayingFile || offset >= pcm16Data.length) {
+                        clearInterval(timer);
+                        isPlayingFile = false;
+                        if (offset >= pcm16Data.length) {
+                            addStatusCard('✓ Sample audio finished playing');
+                        }
+                        return;
+                    }
+                    const chunk = pcm16Data.subarray(offset, offset + chunkSize);
+                    if (websocket && websocket.readyState === WebSocket.OPEN) {
+                        websocket.send(chunk.buffer);
+                    }
+                    offset += chunkSize;
+                }, 16);
+
+            } catch (e) {
+                alert('Failed to decode audio file: ' + e.message);
+                stopSession();
+            }
+        }
+
+        window.stopSession = function() {
+            isRunning = false;
+            isPlayingFile = false;
+            if (workletNode) { workletNode.disconnect(); workletNode = null; }
+            if (audioContext) { audioContext.close().catch(function(){}); audioContext = null; }
+            if (mediaStream) { mediaStream.getTracks().forEach(function(t){ t.stop(); }); mediaStream = null; }
+            if (websocket) { websocket.close(); websocket = null; }
+            if (outputWs) { outputWs.close(); outputWs = null; }
+            finalizeTurn();
+            setStatus('idle', 'Stopped');
+            setButtons(true);
+        };
+
+        // ============================================================
+        // 5. TRANSCRIPT LOG MANAGEMENT & EXPORT (SRT / VTT / TXT)
+        // ============================================================
+        function clearTranscript() {
+            const log = document.getElementById('transcript-log');
+            log.innerHTML = '';
+            currentCard = null;
+            currentTranscription = '';
+            currentTranslation = '';
+            userHasScrolled = false;
+            transcribeDone = false;
+            translateDone = false;
+            turnsHistory.length = 0;
+        }
+
+        function ensureActiveCard() {
+            if (currentCard) return;
+            const ph = document.getElementById('transcript-placeholder');
+            if (ph) ph.remove();
+
+            turnStartTime = Date.now();
+            const card = document.createElement('div');
+            card.className = 'turn-card active';
+            card.innerHTML =
+                '<div class="turn-original"></div>' +
+                '<div class="turn-translation"></div>';
+            document.getElementById('transcript-log').appendChild(card);
+            currentCard = card;
+        }
+
+        function finalizeTurn() {
+            if (currentCard) {
+                currentCard.classList.remove('active');
+                const orig = currentCard.querySelector('.turn-original').textContent.trim();
+                const trans = currentCard.querySelector('.turn-translation').textContent.trim();
+                if (!orig && !trans) {
+                    currentCard.remove();
+                } else {
+                    turnsHistory.push({
+                        start: turnStartTime || Date.now() - 3000,
+                        end: Date.now(),
+                        orig: orig,
+                        trans: trans
+                    });
+                }
+            }
+            currentCard = null;
+            currentTranscription = '';
+            currentTranslation = '';
+            transcribeDone = false;
+            translateDone = false;
+        }
+
+        function addStatusCard(text) {
+            const log = document.getElementById('transcript-log');
+            const card = document.createElement('div');
+            card.style.cssText = 'text-align:center; padding:6px; color:#8b949e; font-size:11px;';
+            card.textContent = text;
+            log.appendChild(card);
+            autoScroll();
+        }
+
+        function autoScroll() {
+            if (userHasScrolled) return;
+            const log = document.getElementById('transcript-log');
+            log.scrollTop = log.scrollHeight;
+        }
+
+        const logEl = document.getElementById('transcript-log');
+        logEl.addEventListener('scroll', function() {
+            const atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 60;
+            userHasScrolled = !atBottom;
+        });
+
+        // Export Subtitles Function
+        window.exportTranscript = function(format) {
+            if (turnsHistory.length === 0) {
+                alert('No transcript items recorded yet to export.');
+                return;
+            }
+
+            let content = '';
+            const baseTime = turnsHistory[0].start;
+
+            function formatTime(ms, isVTT) {
+                const totalSeconds = Math.floor(ms / 1000);
+                const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+                const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+                const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+                const millis = (ms % 1000).toString().padStart(3, '0');
+                return hours + ':' + minutes + ':' + seconds + (isVTT ? '.' : ',') + millis;
+            }
+
+            if (format === 'srt') {
+                turnsHistory.forEach(function(item, idx) {
+                    const s = formatTime(Math.max(0, item.start - baseTime), false);
+                    const e = formatTime(Math.max(1000, item.end - baseTime), false);
+                    content += (idx + 1) + '\n' + s + ' --> ' + e + '\n' + item.trans + '\n\n';
+                });
+            } else if (format === 'vtt') {
+                content = 'WEBVTT\n\n';
+                turnsHistory.forEach(function(item, idx) {
+                    const s = formatTime(Math.max(0, item.start - baseTime), true);
+                    const e = formatTime(Math.max(1000, item.end - baseTime), true);
+                    content += (idx + 1) + '\n' + s + ' --> ' + e + '\n' + item.trans + '\n\n';
+                });
+            } else {
+                turnsHistory.forEach(function(item) {
+                    content += '[' + new Date(item.start).toLocaleTimeString() + '] ' + item.trans + ' (' + item.orig + ')\n';
+                });
+            }
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nerdearla-transcript.' + format;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        // ============================================================
+        // 6. AUDIENCE VIEW IMPLEMENTATION
+        // ============================================================
+        window.connectAudienceStream = function() {
+            const stage = document.getElementById('audience-stage-select').value;
+            const screen = document.getElementById('audience-screen');
+            screen.innerHTML = '<div class="transcript-placeholder">Connected to ' + stage + '. Listening for live speech...</div>';
+
+            if (audienceWs) audienceWs.close();
+            const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const url = wsProto + '//' + location.host + '/ws/stream/' + stage;
+            audienceWs = new WebSocket(url);
+
+            let audCurrentCard = null;
+            let audOrig = '';
+            let audTrans = '';
+
+            audienceWs.onmessage = function(e) {
+                try {
+                    const msg = JSON.parse(e.data);
+                    if (msg.type === 'transcription') {
+                        audOrig += msg.text;
+                        if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
+                        audCurrentCard.querySelector('.audience-original').textContent = audOrig;
+                        screen.scrollTop = screen.scrollHeight;
+                    } else if (msg.type === 'translation') {
+                        audTrans += msg.text;
+                        if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
+                        audCurrentCard.querySelector('.audience-translation').textContent = audTrans;
+                        screen.scrollTop = screen.scrollHeight;
+                    } else if (msg.type === 'transcription_done' || msg.type === 'translation_done') {
+                        audCurrentCard = null;
+                        audOrig = '';
+                        audTrans = '';
+                    }
+                } catch(err){}
+            };
+        };
+
+        function createAudienceCard(screen) {
+            const ph = screen.querySelector('.transcript-placeholder');
+            if (ph) ph.remove();
+            const card = document.createElement('div');
+            card.className = 'audience-turn';
+            card.innerHTML =
+                '<div class="audience-original"></div>' +
+                '<div class="audience-translation" style="font-size: ' + audienceFontSize + 'px;"></div>';
+            screen.appendChild(card);
+            updateAudienceViewMode();
+            return card;
+        }
+
+        window.updateAudienceViewMode = function() {
+            const mode = document.getElementById('audience-lang-mode').value;
+            document.querySelectorAll('.audience-original').forEach(function(el) {
+                el.style.display = (mode === 'dual' || mode === 'original') ? 'block' : 'none';
+            });
+            document.querySelectorAll('.audience-translation').forEach(function(el) {
+                el.style.display = (mode === 'dual' || mode === 'translation') ? 'block' : 'none';
+            });
+        };
+
+        window.adjustFontSize = function(delta) {
+            audienceFontSize = Math.max(14, Math.min(36, audienceFontSize + delta));
+            document.querySelectorAll('.audience-translation').forEach(function(el) {
+                el.style.fontSize = audienceFontSize + 'px';
+            });
+        };
+
+        // ============================================================
+        // 7. PRODUCTION MONITOR POLLING
+        // ============================================================
+        async function refreshMonitorStats() {
+            try {
+                const res = await fetch('/api/sessions');
+                const data = await res.json();
+                const sessions = data.sessions || {};
+                const keys = Object.keys(sessions);
+
+                document.getElementById('stat-active-stages').textContent = keys.length;
+                let totalViewers = 0;
+                const tbody = document.getElementById('monitor-stages-body');
+                tbody.innerHTML = '';
+
+                if (keys.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No active broadcast sessions.</td></tr>';
+                } else {
+                    keys.forEach(function(stageId) {
+                        const count = sessions[stageId].listeners || 0;
+                        totalViewers += count;
+                        const tr = document.createElement('tr');
+                        tr.innerHTML =
+                            '<td><strong>' + stageId + '</strong></td>' +
+                            '<td>' + count + ' viewers</td>' +
+                            '<td><span style="color: var(--success);">● Active</span></td>' +
+                            '<td><a href="/?overlay=true&session=' + stageId + '" target="_blank" style="color: var(--accent);">Open Overlay</a></td>';
+                        tbody.appendChild(tr);
+                    });
+                }
+                document.getElementById('stat-total-viewers').textContent = totalViewers;
+            } catch(e) {}
+        }
+        setInterval(function() {
+            if (document.getElementById('monitor-view').style.display === 'block') {
+                refreshMonitorStats();
+            }
+        }, 3000);
+
+        // ============================================================
+        // 8. WEBSOCKET / SSE UTILITIES
+        // ============================================================
+        function connectOutputWs(url, callbacks) {
+            if (outputWs) outputWs.close();
+            outputWs = new WebSocket(url);
+            outputWs.onmessage = function(e) {
+                try {
+                    const msg = JSON.parse(e.data);
+                    if (msg.type === 'transcription') callbacks.onTranscription(msg.text);
+                    else if (msg.type === 'translation') callbacks.onTranslation(msg.text);
+                    else if (msg.type === 'transcription_done') callbacks.onTranscriptionDone();
+                    else if (msg.type === 'translation_done') callbacks.onTranslationDone();
+                    else if (msg.type === 'status') callbacks.onStatus(msg.text);
+                } catch (err) {}
+            };
+        }
+
+        function connectSSE(sessionId, callbacks) {
+            if (eventSource) eventSource.close();
+            eventSource = new EventSource('/stream/' + sessionId);
+            eventSource.addEventListener('transcription', function(e) { if (e.data) callbacks.onTranscription(e.data); });
+            eventSource.addEventListener('translation', function(e) { if (e.data) callbacks.onTranslation(e.data); });
+            eventSource.addEventListener('transcription_done', function() { callbacks.onTranscriptionDone(); });
+            eventSource.addEventListener('translation_done', function() { callbacks.onTranslationDone(); });
+        }
+
+        function trimText(text, maxLen) {
+            return text.length <= maxLen ? text : '…' + text.slice(-(maxLen - 1));
+        }
+
+        function setStatus(state, text) {
+            const dot = document.getElementById('status-dot');
+            const label = document.getElementById('status-text');
+            dot.className = 'status-dot';
+            if (state === 'connected') dot.classList.add('connected');
+            if (state === 'error') dot.classList.add('error');
+            label.textContent = text;
+        }
+
+        function setButtons(canStart) {
+            document.getElementById('btn-start').disabled = !canStart;
+            document.getElementById('btn-stop').disabled = canStart;
+        }
+
+    })();
+    </script>
+</body>
+</html>

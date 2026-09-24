@@ -1,0 +1,23 @@
+# Binaries
+live-subs-app
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Environment variables & secrets
+.env
+*.key
+*.pem
+
+# macOS
+.DS_Store
+
+# Go test / coverage
+*.out
+*.test
+
+# IDEs
+.idea/
+.vscode/
