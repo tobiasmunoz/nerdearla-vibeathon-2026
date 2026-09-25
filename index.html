@@ -620,7 +620,8 @@
         const turnsHistory = []; // { start: timestamp, orig: string, trans: string }
 
         let currentCard = null;
-        let currentTranscription = '';
+        let currentSegments = [];
+        let currentInterim = '';
         let currentTranslation = '';
         let userHasScrolled = false;
         let transcribeDone = false;
@@ -642,20 +643,32 @@
         if (isOverlayMode) {
             document.body.classList.add('overlay-mode');
             const targetSession = overlaySessionId || 'stage-1';
+            let overlaySegments = [];
+            let overlayInterim = '';
             let overlayTranslation = '';
 
+            function updateOverlayOriginal() {
+                const el = document.getElementById('overlay-transcription');
+                let full = overlaySegments.join(' ');
+                if (overlayInterim) {
+                    full = full ? (full + ' ' + overlayInterim) : overlayInterim;
+                }
+                el.textContent = trimText(full, 140);
+                el.style.opacity = overlayInterim ? '0.7' : '1';
+            }
+
             connectSSE(targetSession, {
-                // Interim: replace live preview of transcription (speculative, dim)
                 onTranscriptionInterim: function(text) {
-                    const el = document.getElementById('overlay-transcription');
-                    el.textContent = trimText(text, 140);
-                    el.style.opacity = '0.55';
+                    overlayInterim = text.trim();
+                    updateOverlayOriginal();
                 },
-                // Final: commit at full opacity
                 onTranscription: function(text) {
-                    const el = document.getElementById('overlay-transcription');
-                    el.textContent = trimText(text, 140);
-                    el.style.opacity = '1';
+                    const clean = text.trim();
+                    if (clean && (overlaySegments.length === 0 || overlaySegments[overlaySegments.length - 1] !== clean)) {
+                        overlaySegments.push(clean);
+                    }
+                    overlayInterim = '';
+                    updateOverlayOriginal();
                 },
                 onTranslation: function(text) {
                     overlayTranslation += text;
@@ -663,6 +676,8 @@
                     el.textContent = trimText(overlayTranslation, 140);
                 },
                 onTranscriptionDone: function() {
+                    overlaySegments = [];
+                    overlayInterim = '';
                     document.getElementById('overlay-transcription').textContent = '';
                 },
                 onTranslationDone: function() { overlayTranslation = ''; },
@@ -825,6 +840,21 @@
                     }
                 }
 
+                function updateConsoleTranscription() {
+                    ensureActiveCard();
+                    const el = currentCard.querySelector('.turn-original');
+                    let fullText = currentSegments.join(' ');
+                    if (currentInterim) {
+                        fullText = fullText ? (fullText + ' ' + currentInterim) : currentInterim;
+                        el.textContent = fullText;
+                        el.style.opacity = '0.75';
+                    } else {
+                        el.textContent = fullText;
+                        el.style.opacity = '1';
+                    }
+                    autoScroll();
+                }
+
                 // Output WebSocket to display live subtitles
                 const streamUrl = wsProto + '//' + location.host + '/ws/stream/' + sessionId;
                 connectOutputWs(streamUrl, {
@@ -833,19 +863,18 @@
                             if (finalizeTimer) { clearTimeout(finalizeTimer); finalizeTimer = null; }
                             finalizeTurn();
                         }
-                        ensureActiveCard();
-                        const el = currentCard.querySelector('.turn-original');
-                        el.textContent = text;
-                        el.style.opacity = '0.65';
-                        autoScroll();
+                        currentInterim = text.trim();
+                        updateConsoleTranscription();
                     },
                     onTranscription: function(text) {
-                        currentTranscription = text;
-                        ensureActiveCard();
-                        const el = currentCard.querySelector('.turn-original');
-                        el.textContent = currentTranscription;
-                        el.style.opacity = '1';
-                        autoScroll();
+                        const clean = text.trim();
+                        if (clean) {
+                            if (currentSegments.length === 0 || currentSegments[currentSegments.length - 1] !== clean) {
+                                currentSegments.push(clean);
+                            }
+                        }
+                        currentInterim = '';
+                        updateConsoleTranscription();
                     },
                     onTranslation: function(text) {
                         if (transcribeDone || translateDone) {
@@ -876,7 +905,7 @@
             }
         };
 
-        // Microphone Capture via AudioWorklet
+        // Microphone Capture via AudioWorklet (1024 frames = 64ms chunk, matching Gemini Live window)
         async function startMicCapture() {
             const deviceId = document.getElementById('mic-select').value;
             mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -894,7 +923,7 @@
                 'class PCM16Processor extends AudioWorkletProcessor {',
                 '  constructor() {',
                 '    super();',
-                '    this.buffer = new Int16Array(256);',
+                '    this.buffer = new Int16Array(1024);',
                 '    this.offset = 0;',
                 '  }',
                 '  process(inputs) {',
@@ -904,7 +933,7 @@
                 '      const s = Math.max(-1, Math.min(1, ch[i]));',
                 '      this.buffer[this.offset++] = s < 0 ? s * 0x8000 : s * 0x7FFF;',
                 '    }',
-                '    if (this.offset >= 256) {',
+                '    if (this.offset >= 1024) {',
                 '      this.port.postMessage(this.buffer.buffer.slice(0));',
                 '      this.offset = 0;',
                 '    }',
@@ -957,8 +986,8 @@
                     pcm16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
                 }
 
-                // Stream in 256-sample chunks (16ms per chunk)
-                const chunkSize = 256;
+                // Stream in 1024-sample chunks (64ms per chunk, matching Gemini Live window)
+                const chunkSize = 1024;
                 let offset = 0;
                 isPlayingFile = true;
 
@@ -976,7 +1005,7 @@
                         websocket.send(chunk.buffer);
                     }
                     offset += chunkSize;
-                }, 16);
+                }, 64);
 
             } catch (e) {
                 alert('Failed to decode audio file: ' + e.message);
@@ -1004,7 +1033,8 @@
             const log = document.getElementById('transcript-log');
             log.innerHTML = '';
             currentCard = null;
-            currentTranscription = '';
+            currentSegments = [];
+            currentInterim = '';
             currentTranslation = '';
             userHasScrolled = false;
             transcribeDone = false;
@@ -1044,7 +1074,8 @@
                 }
             }
             currentCard = null;
-            currentTranscription = '';
+            currentSegments = [];
+            currentInterim = '';
             currentTranslation = '';
             transcribeDone = false;
             translateDone = false;
@@ -1132,41 +1163,57 @@
             audienceWs = new WebSocket(url);
 
             let audCurrentCard = null;
-            let audOrig = '';
+            let audSegments = [];
+            let audInterim = '';
             let audTrans = '';
             let audDoneTimer = null;
 
             function sealAudienceTurn() {
                 if (audDoneTimer) { clearTimeout(audDoneTimer); audDoneTimer = null; }
                 audCurrentCard = null;
-                audOrig = '';
+                audSegments = [];
+                audInterim = '';
                 audTrans = '';
+            }
+
+            function updateAudienceOriginal() {
+                if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
+                const el = audCurrentCard.querySelector('.audience-original');
+                let full = audSegments.join(' ');
+                if (audInterim) {
+                    full = full ? (full + ' ' + audInterim) : audInterim;
+                    el.textContent = full;
+                    el.style.opacity = '0.75';
+                } else {
+                    el.textContent = full;
+                    el.style.opacity = '1';
+                }
+                screen.scrollTop = screen.scrollHeight;
             }
 
             audienceWs.onmessage = function(e) {
                 try {
                     const msg = JSON.parse(e.data);
                     if (msg.type === 'transcription_interim') {
-                        if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
-                        const el = audCurrentCard.querySelector('.audience-original');
-                        el.textContent = msg.text;
-                        el.style.opacity = '0.6';
-                        screen.scrollTop = screen.scrollHeight;
+                        if (audDoneTimer) { clearTimeout(audDoneTimer); audDoneTimer = null; sealAudienceTurn(); }
+                        audInterim = msg.text.trim();
+                        updateAudienceOriginal();
                     } else if (msg.type === 'transcription') {
-                        audOrig = msg.text;
-                        if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
-                        const el = audCurrentCard.querySelector('.audience-original');
-                        el.textContent = audOrig;
-                        el.style.opacity = '1';
-                        screen.scrollTop = screen.scrollHeight;
+                        const clean = msg.text.trim();
+                        if (clean && (audSegments.length === 0 || audSegments[audSegments.length - 1] !== clean)) {
+                            audSegments.push(clean);
+                        }
+                        audInterim = '';
+                        updateAudienceOriginal();
                     } else if (msg.type === 'translation') {
+                        if (audDoneTimer) { clearTimeout(audDoneTimer); audDoneTimer = null; sealAudienceTurn(); }
                         audTrans += msg.text;
                         if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
                         audCurrentCard.querySelector('.audience-translation').textContent = audTrans;
                         screen.scrollTop = screen.scrollHeight;
                     } else if (msg.type === 'transcription_done' || msg.type === 'translation_done') {
                         if (!audDoneTimer) {
-                            audDoneTimer = setTimeout(sealAudienceTurn, 1000);
+                            audDoneTimer = setTimeout(sealAudienceTurn, 1200);
                         }
                     }
                 } catch(err){}
