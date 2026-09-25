@@ -155,6 +155,7 @@ func ConnectLive(ctx context.Context, apiKey string, setup SetupConfig) (*LiveSe
 		}
 		return nil, fmt.Errorf("gemini websocket dial failed: %w", err)
 	}
+	conn.SetReadLimit(16 * 1024 * 1024)
 
 	// Send initial setup frame
 	setupMsg := ClientSetupMessage{Setup: setup}

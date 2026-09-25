@@ -184,6 +184,7 @@ func (s *Server) handleWSStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "done")
+	conn.SetReadLimit(16 * 1024 * 1024)
 
 	broadcaster := broadcast.GetOrCreateBroadcaster(sessionID)
 	eventCh := broadcaster.Subscribe()
@@ -242,6 +243,7 @@ func (s *Server) handleWSAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "done")
+	conn.SetReadLimit(16 * 1024 * 1024)
 
 	log.Printf("[%s] Audio WebSocket connected", sessionID)
 	broadcaster := broadcast.GetOrCreateBroadcaster(sessionID)
@@ -442,11 +444,14 @@ func (s *Server) runDualSession(
 	}()
 
 	// 5. Ingest loop: Read PCM from audio WebSocket and forward sequentially to both workers
+	var totalAudioBytes int64
+	lastReport := time.Now()
+
 	for {
 		msgType, pcmData, err := wsConn.Read(sessCtx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || websocket.CloseStatus(err) == websocket.StatusNormalClosure {
-				log.Printf("[%s] Audio WebSocket disconnected cleanly", sessionID)
+				log.Printf("[%s] Audio WebSocket disconnected cleanly (streamed %d KB total)", sessionID, totalAudioBytes/1024)
 				return false
 			}
 			log.Printf("[%s] Audio WebSocket read error: %v", sessionID, err)
@@ -455,6 +460,12 @@ func (s *Server) runDualSession(
 
 		if msgType != websocket.MessageBinary || len(pcmData) == 0 {
 			continue
+		}
+
+		totalAudioBytes += int64(len(pcmData))
+		if time.Since(lastReport) > 5*time.Second {
+			log.Printf("[%s] 🎙️ Ingesting live audio: %d KB received so far...", sessionID, totalAudioBytes/1024)
+			lastReport = time.Now()
 		}
 
 		select {

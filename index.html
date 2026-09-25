@@ -72,12 +72,16 @@
 
         /* ==== MAIN APP CONTAINER ==== */
         #app-container {
-            max-width: 900px;
+            max-width: 960px;
             margin: 0 auto;
-            padding: 24px 16px;
+            padding: 20px 24px;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: max-width 0.2s ease;
+        }
+        #app-container.studio-mode {
+            max-width: 1400px;
         }
 
         /* Navigation Header */
@@ -500,6 +504,180 @@
             font-weight: 600;
             border-color: var(--accent);
         }
+        .vu-meter {
+            width: 100px;
+            height: 8px;
+            background: #21262d;
+            border-radius: 4px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        .vu-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--success), var(--accent));
+            transition: width 0.05s linear;
+        }
+
+        /* ==== MULTI-STAGE STUDIO (OBS DEMO) ==== */
+        .presenter-card {
+            background: linear-gradient(180deg, rgba(22, 27, 34, 0.95), rgba(13, 17, 23, 0.95));
+            border: 1px solid rgba(255, 215, 0, 0.35);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            margin-bottom: 20px;
+        }
+        .presenter-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .presenter-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 20px;
+            align-items: stretch;
+        }
+        @media (max-width: 900px) {
+            .presenter-grid { grid-template-columns: 1fr; }
+        }
+        .presenter-controls {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .presenter-subtitles-ribbon {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            border-radius: 8px;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 140px;
+        }
+        .ribbon-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .presenter-original {
+            font-size: 15px;
+            color: #8b949e;
+            margin-bottom: 8px;
+            min-height: 22px;
+            line-height: 1.4;
+        }
+        .presenter-translation {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1.35;
+            min-height: 32px;
+        }
+        .master-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .studio-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+        .stage-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .stage-card.active-streaming {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+        }
+        .stage-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #000;
+            border: 1px solid var(--border);
+        }
+        .video-container iframe,
+        .video-container video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: 0;
+            object-fit: contain;
+            background: #000;
+        }
+        .tab-quick-pill:hover {
+            background: rgba(255, 255, 255, 0.12) !important;
+            border-color: var(--accent) !important;
+            transform: translateY(-1px);
+        }
+        .stage-config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-top: 2px;
+        }
+        .stage-subtitles-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            min-height: 85px;
+            max-height: 120px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        .stage-sub-orig {
+            font-size: 11px;
+            color: #8b949e;
+            line-height: 1.3;
+            margin-bottom: 4px;
+        }
+        .stage-sub-trans {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            line-height: 1.35;
+        }
     </style>
 </head>
 <body>
@@ -511,23 +689,153 @@
     </div>
 
     <!-- ==== APP CONTAINER ==== -->
-    <div id="app-container">
+    <div id="app-container" class="studio-mode">
         <header>
             <div class="brand">
                 <h1>🎙️ Nerdearla Live Subs</h1>
                 <span class="brand-badge">Go 1.23 Engine</span>
             </div>
             <nav class="nav-tabs">
-                <button class="tab-btn active" onclick="switchView('console')">🎛️ Presenter Console</button>
+                <button class="tab-btn active" onclick="switchView('studio')">🎬 Multi-Stage Studio</button>
+                <button class="tab-btn" onclick="switchView('console')">🎛️ Presenter Console</button>
                 <button class="tab-btn" onclick="switchView('audience')">👥 Audience View</button>
                 <button class="tab-btn" onclick="switchView('monitor')">📊 Stage Monitor</button>
             </nav>
         </header>
 
         <!-- ========================================== -->
+        <!-- 0. MULTI-STAGE STUDIO VIEW (OBS DEMO)      -->
+        <!-- ========================================== -->
+        <main id="studio-view">
+            <!-- 1. Presenter Live Mic Card -->
+            <div class="panel-card presenter-card">
+                <div class="presenter-card-header">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 26px;">🎙️</span>
+                        <div>
+                            <div style="font-weight: 700; font-size: 16px;">Live Presenter Broadcast (You)</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Microphone: Speak to OBS audience with real-time translation</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="badge badge-ready" id="presenter-badge">Ready</span>
+                        <div class="vu-meter" id="presenter-vu-meter" style="display: inline-block; width: 120px;" title="Presenter Mic Level">
+                            <div class="vu-bar" id="presenter-vu-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="presenter-grid">
+                    <!-- Left: Mic controls -->
+                    <div class="presenter-controls">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <select id="studio-mic-select" onchange="onStudioMicChanged()" style="flex: 1; font-size: 12px; padding: 6px 10px;">
+                                <option value="default">Default System Microphone</option>
+                            </select>
+                            <button type="button" class="btn btn-secondary" onclick="loadMicrophones(true)" style="padding: 6px 10px; font-size: 11px;" title="Rescan Bluetooth / USB devices">
+                                🔄
+                            </button>
+                        </div>
+
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: var(--text-muted); display: block;">From:</label>
+                                <select id="studio-mic-source-lang" style="font-size: 12px; padding: 4px 8px; width: 100%;">
+                                    <option value="es" selected>🇦🇷 Español</option>
+                                    <option value="en">🇺🇸 English</option>
+                                    <option value="pt">🇧🇷 Português</option>
+                                </select>
+                            </div>
+                            <button type="button" class="lang-swap" onclick="swapStudioMicLanguages()" style="margin-top: 14px; width: 28px; height: 28px;" title="Swap">⇄</button>
+                            <div style="flex: 1;">
+                                <label style="font-size: 10px; color: var(--text-muted); display: block;">To:</label>
+                                <select id="studio-mic-target-lang" style="font-size: 12px; padding: 4px 8px; width: 100%;">
+                                    <option value="en" selected>🇺🇸 English</option>
+                                    <option value="es">🇦🇷 Español</option>
+                                    <option value="pt">🇧🇷 Português</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 11px;">
+                            <span style="color: var(--text-muted);">Mic Boost:</span>
+                            <span id="studio-boost-val" style="color: var(--accent); font-weight: 700;">1.5x</span>
+                            <input type="range" id="studio-mic-boost" min="1.0" max="3.0" step="0.1" value="1.5" oninput="updateStudioBoost(this.value)" style="width: 110px; accent-color: var(--accent);">
+                        </div>
+
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-start" id="btn-studio-mic" onclick="toggleStudioMic()" style="flex: 1; padding: 10px 16px; font-size: 13px;">
+                                ▶ Start Presenter Mic
+                            </button>
+                            <button class="btn btn-secondary" onclick="copyObsOverlayLink('Live Mic')" style="padding: 10px 12px; font-size: 12px;" title="Copy OBS Browser Source URL">
+                                📺 OBS
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Subtitle live ribbon -->
+                    <div class="presenter-subtitles-ribbon">
+                        <div class="ribbon-header">
+                            <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Live Presenter Subtitles</span>
+                            <span id="presenter-lang-badge" style="font-size: 11px; color: var(--accent); font-weight: 700;">ES → EN</span>
+                        </div>
+                        <div class="presenter-original" id="presenter-original">
+                            Esperando que hables al micrófono... (Haz click en "Start Presenter Mic")
+                        </div>
+                        <div class="presenter-translation" id="presenter-translation">
+                            Waiting for presenter speech... (Real-time English translation will appear here)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Master Controls for Video Stages -->
+            <div class="master-bar">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; width: 100%;">
+                    <div>
+                        <div style="font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                            <span>🎥</span> Simultaneous Video Stages (Real YouTube Chrome Tabs)
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                            Open each conference talk in a tab, click <strong>"Capture Tab Video & Audio"</strong>, and watch both the live video feed and live Gemini subtitles stream!
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <button class="btn btn-secondary" onclick="openAllYouTubeTabs()" style="padding: 7px 12px; font-size: 12px; color: var(--accent); border-color: var(--accent); font-weight: 600;" title="Attempts to open all 3 tabs">
+                            🔗 Open All 3 Tabs ↗
+                        </button>
+                        <button class="btn btn-secondary" id="btn-master-stop" onclick="stopAllVideoStages()" style="padding: 7px 12px; font-size: 12px;">
+                            ■ Stop All Stages
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick-Launch Pill Links (Bypasses Chrome Popup Blocker 100%) -->
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <span style="font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Quick Open Tabs:</span>
+                    <a href="https://www.youtube.com/watch?v=GVadbxHks_A&t=92s" target="_blank" class="tab-quick-pill" style="font-size: 11px; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                        🏛️ <strong>Stage 1: Keynote</strong> <span style="background: rgba(88,166,255,0.2); color: #58a6ff; font-size: 10px; padding: 1px 5px; border-radius: 4px;">EN → ES</span> ↗
+                    </a>
+                    <a href="https://www.youtube.com/watch?v=ObElMurNobI" target="_blank" class="tab-quick-pill" style="font-size: 11px; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                        🎙️ <strong>Stage 2: Main Talk</strong> <span style="background: rgba(63,185,80,0.2); color: #3fb950; font-size: 10px; padding: 1px 5px; border-radius: 4px;">ES → EN</span> ↗
+                    </a>
+                    <a href="https://www.youtube.com/watch?v=_bV_-ZLNWho" target="_blank" class="tab-quick-pill" style="font-size: 11px; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                        🔊 <strong>Stage 3: Noisy Room</strong> <span style="background: rgba(255,215,0,0.2); color: var(--accent); font-size: 10px; padding: 1px 5px; border-radius: 4px;">ES → EN</span> ↗
+                    </a>
+                    <span id="popup-blocked-hint" style="display: none; font-size: 11px; color: #f85149; margin-left: 6px;">
+                        ⚠️ Chrome blocked popups. Use the 3 links above or click "Always allow popups" in your address bar!
+                    </span>
+                </div>
+            </div>
+
+            <!-- 3. 3-Column Video Stages Grid -->
+            <div class="studio-grid" id="studio-grid"></div>
+        </main>
+
+        <!-- ========================================== -->
         <!-- 1. PRESENTER CONSOLE VIEW                   -->
         <!-- ========================================== -->
-        <main id="console-view">
+        <main id="console-view" style="display:none;">
             <div class="panel-card">
                 <div class="row">
                     <div class="field">
@@ -538,26 +846,80 @@
                         <label for="audio-source">Audio Input Source</label>
                         <select id="audio-source" onchange="toggleAudioSourceUI()">
                             <option value="mic">🎙️ Live Microphone</option>
-                            <option value="tab">🖥️ Browser Tab Audio (YouTube & Talks)</option>
-                            <option value="sample">📁 Built-in Nerdearla Talk Samples (2 Stages)</option>
-                            <option value="upload">📤 Upload Audio Files (.wav, .mp3 — Multi-Stage Demo)</option>
+                            <option value="tab">🖥️ Browser Tab Audio (YouTube Talks)</option>
+                            <option value="upload">📤 Upload Audio Files (.wav, .mp3)</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- 1. Mic device picker -->
+                <!-- 1. Mic device picker & Audio Quality Controls -->
                 <div class="field" id="mic-picker-row" style="margin-bottom: 14px;">
-                    <label for="mic-select">Select Microphone</label>
-                    <select id="mic-select">
-                        <option value="">Loading microphones...</option>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+                        <label for="mic-select" style="margin-bottom: 0;">Select Microphone / Headset</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn btn-secondary" id="btn-test-mic" onclick="toggleMicTest()" style="padding: 4px 10px; font-size: 11px;">
+                                🎙️ Test Mic
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="loadMicrophones(true)" id="btn-rescan-mics" style="padding: 4px 10px; font-size: 11px;">
+                                🔄 Rescan Devices
+                            </button>
+                        </div>
+                    </div>
+
+                    <select id="mic-select" onchange="onMicrophoneSelected()">
+                        <option value="default">Default System Microphone (Follows macOS Sound Settings)</option>
                     </select>
+
+                    <!-- Real-time Test Mic VU meter bar (only visible during test) -->
+                    <div id="mic-test-container" style="display: none; margin-top: 8px; padding: 8px 12px; background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.25); border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                            <span>🎙️ Speaking into mic... say something:</span>
+                            <span id="mic-test-db" style="font-weight: 600; color: var(--accent);">Level: 0%</span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: #21262d; border-radius: 4px; overflow: hidden;">
+                            <div id="mic-test-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--success), var(--accent)); transition: width 0.05s linear;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Processing Profile & Sensitivity Boost -->
+                    <div style="margin-top: 10px; padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start;">
+                            <div>
+                                <label for="mic-profile" style="font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 4px; display: block;">
+                                    Audio Optimization Profile:
+                                </label>
+                                <select id="mic-profile" onchange="onProfileChanged()" style="font-size: 12px; padding: 6px 10px;">
+                                    <option value="headset" selected>🎧 Headset / Earbuds (Galaxy Buds, AirPods) — Clean voice, hardware DSP</option>
+                                    <option value="laptop">💻 Laptop Built-in Mic & Speakers — Echo cancellation & noise filter</option>
+                                    <option value="studio">🎙️ Studio / External USB Mic — Raw uncompressed audio</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <label for="mic-boost-slider" style="font-weight: 600; color: var(--text); margin: 0;">
+                                        Mic Volume Boost:
+                                    </label>
+                                    <span id="mic-boost-val" style="color: var(--accent); font-weight: 700;">1.5x (+3.5 dB)</span>
+                                </div>
+                                <input type="range" id="mic-boost-slider" min="1.0" max="3.0" step="0.1" value="1.5" oninput="updateMicBoost(this.value)" style="width: 100%; accent-color: var(--accent); cursor: pointer;">
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                            💡 <strong>Tip for Galaxy Buds / Bluetooth:</strong> Select <em>Headset Profile</em> to disable browser software noise-filtering that can clip your voice, and use <em>Mic Boost</em> to lift speech to the optimal volume for Gemini Live.
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 2. Browser Tab / YouTube Audio Info & Helper -->
                 <div id="tab-picker-row" style="display:none; margin-bottom: 14px;">
                     <div class="integration-box" style="margin-top:0;">
-                        🎥 <strong>Real-Time YouTube & Web Video Audio Capture:</strong><br>
-                        1. Open any YouTube talk in another browser tab (e.g. <a href="https://www.youtube.com/@nerdearla/videos" target="_blank">Nerdearla YouTube Channel ↗</a>).<br>
+                        🎥 <strong>Real-Time YouTube Tab Audio Capture:</strong><br>
+                        1. Open any of these YouTube talks in another Chrome tab:<br>
+                        <div style="margin: 6px 0; display: flex; flex-direction: column; gap: 4px;">
+                            • <a href="https://www.youtube.com/watch?v=GVadbxHks_A&t=92s" target="_blank" style="color:var(--accent); font-weight:600;">🇺🇸 Keynote: English → Spanish (YouTube ↗)</a>
+                            • <a href="https://www.youtube.com/watch?v=ObElMurNobI" target="_blank" style="color:var(--accent); font-weight:600;">🇦🇷 Conference Talk: Spanish → English (YouTube ↗)</a>
+                            • <a href="https://www.youtube.com/watch?v=_bV_-ZLNWho" target="_blank" style="color:var(--accent); font-weight:600;">🇦🇷 Noisy Room Talk: Spanish → English (YouTube ↗)</a>
+                        </div>
                         2. Click <strong>▶ Start Streaming & Subtitles</strong> below.<br>
                         3. In the browser popup, select <strong>Chrome Tab</strong>, choose your video tab, and ensure <strong>"Also share tab audio"</strong> is checked.<br>
                         4. Play the talk: Gemini Live will capture the speaker's audio directly and transcribe & translate in real time!
@@ -638,6 +1000,9 @@
                     <div class="status-left">
                         <div class="status-dot" id="status-dot"></div>
                         <span id="status-text">Ready</span>
+                        <div class="vu-meter" id="vu-meter" style="display:none;" title="Live Audio Input Level">
+                            <div class="vu-bar" id="vu-bar"></div>
+                        </div>
                     </div>
                     <div id="listener-counter" style="color: var(--text-muted); font-size: 12px;">0 viewers connected</div>
                 </div>
@@ -762,6 +1127,11 @@
         let eventSource = null;
         let isRunning = false;
         let isPlayingFile = false;
+        let gainNode = null;
+        let currentMicBoost = 1.5;
+        let isTestingMic = false;
+        let micStreamForTest = null;
+        let micTestAudioCtx = null;
 
         // Transcript storage for export
         const turnsHistory = []; // { start: timestamp, orig: string, trans: string }
@@ -833,35 +1203,868 @@
             return;
         }
 
-        // Handle view query param
-        if (viewParam === 'audience') {
-            switchView('audience');
-        } else if (viewParam === 'monitor') {
-            switchView('monitor');
-        }
-
         // ============================================================
         // 2. VIEW SWITCHING
         // ============================================================
-        window.switchView = function(viewName) {
-            document.getElementById('console-view').style.display = viewName === 'console' ? 'block' : 'none';
-            document.getElementById('audience-view').style.display = viewName === 'audience' ? 'block' : 'none';
-            document.getElementById('monitor-view').style.display = viewName === 'monitor' ? 'block' : 'none';
+        function switchView(viewName) {
+            const consoleView = document.getElementById('console-view');
+            const studioView = document.getElementById('studio-view');
+            const audienceView = document.getElementById('audience-view');
+            const monitorView = document.getElementById('monitor-view');
+            const appContainer = document.getElementById('app-container');
+
+            if (consoleView) consoleView.style.display = viewName === 'console' ? 'block' : 'none';
+            if (studioView) studioView.style.display = viewName === 'studio' ? 'block' : 'none';
+            if (audienceView) audienceView.style.display = viewName === 'audience' ? 'block' : 'none';
+            if (monitorView) monitorView.style.display = viewName === 'monitor' ? 'block' : 'none';
+
+            if (appContainer) {
+                if (viewName === 'studio') appContainer.classList.add('studio-mode');
+                else appContainer.classList.remove('studio-mode');
+            }
 
             document.querySelectorAll('.tab-btn').forEach(function(btn, idx) {
                 btn.classList.toggle('active',
-                    (viewName === 'console' && idx === 0) ||
-                    (viewName === 'audience' && idx === 1) ||
-                    (viewName === 'monitor' && idx === 2)
+                    (viewName === 'studio' && idx === 0) ||
+                    (viewName === 'console' && idx === 1) ||
+                    (viewName === 'audience' && idx === 2) ||
+                    (viewName === 'monitor' && idx === 3)
                 );
             });
 
-            if (viewName === 'audience') {
+            if (viewName === 'audience' && typeof connectAudienceStream === 'function') {
                 connectAudienceStream();
-            } else if (viewName === 'monitor') {
+            } else if (viewName === 'monitor' && typeof refreshMonitorStats === 'function') {
                 refreshMonitorStats();
             }
+        }
+        window.switchView = switchView;
+
+        // ============================================================
+        // 2.5 MULTI-STAGE STUDIO BROADCAST ENGINE (OBS DEMO)
+        // ============================================================
+        const VIDEO_STAGES_CONFIG = [
+            {
+                id: 'stage-keynote',
+                title: 'Stage 1: Keynote (English → Spanish)',
+                icon: '🏛️',
+                defaultYoutubeId: 'GVadbxHks_A',
+                embedUrl: 'https://www.youtube.com/embed/GVadbxHks_A?start=92&enablejsapi=1&rel=0',
+                defaultUrl: 'https://www.youtube.com/watch?v=GVadbxHks_A&t=92s',
+                audioSampleUrl: '/samples/nerdearla-talk-english.wav',
+                sourceLang: 'en',
+                targetLang: 'es',
+                description: 'Keynote Talk: English speech translated live to Spanish'
+            },
+            {
+                id: 'stage-workshop',
+                title: 'Stage 2: Main Talk (Spanish → English)',
+                icon: '🎙️',
+                defaultYoutubeId: 'ObElMurNobI',
+                embedUrl: 'https://www.youtube.com/embed/ObElMurNobI?enablejsapi=1&rel=0',
+                defaultUrl: 'https://www.youtube.com/watch?v=ObElMurNobI',
+                audioSampleUrl: '/samples/nerdearla-talk-spanish.wav',
+                sourceLang: 'es',
+                targetLang: 'en',
+                description: 'Conference Talk: Spanish speech translated live to English'
+            },
+            {
+                id: 'stage-noisy',
+                title: 'Stage 3: Noisy Environment (Spanish → English)',
+                icon: '🔊',
+                defaultYoutubeId: '_bV_-ZLNWho',
+                embedUrl: 'https://www.youtube.com/embed/_bV_-ZLNWho?enablejsapi=1&rel=0',
+                defaultUrl: 'https://www.youtube.com/watch?v=_bV_-ZLNWho',
+                audioSampleUrl: '/samples/nerdearla-talk-spanish-noisy.wav',
+                sourceLang: 'es',
+                targetLang: 'en',
+                description: 'Spanish speech with ambient background noise translated to English'
+            }
+        ];
+
+        class StageRunner {
+            constructor(cfg) {
+                this.cfg = cfg;
+                this.id = cfg.id;
+                this.isRunning = false;
+                this.wsAudio = null;
+                this.wsStream = null;
+                this.streamTimer = null;
+                this.displayStream = null;
+                this.tabMediaStream = null;
+                this.audioCtx = null;
+                this.workletNode = null;
+                this.segments = [];
+                this.interim = '';
+                this.translation = '';
+            }
+
+            async startTalkStreaming() {
+                if (this.isRunning) return;
+                this.stop();
+
+                this.setCardStatus('Streaming', 'badge-streaming');
+                const card = document.getElementById('card-' + this.id);
+                if (card) card.classList.add('active-streaming');
+
+                const btn = document.getElementById('btn-stream-' + this.id);
+                if (btn) {
+                    btn.textContent = '■ Stop Stream';
+                    btn.className = 'btn btn-stop';
+                }
+
+                // Trigger video play
+                this.sendIframeCommand('playVideo');
+
+                try {
+                    const resp = await fetch(this.cfg.audioSampleUrl);
+                    const arrayBuf = await resp.arrayBuffer();
+
+                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                    if (this.audioCtx.state === 'suspended') {
+                        await this.audioCtx.resume();
+                    }
+
+                    const { pcm16Data } = await decodeAudioBufferToPCM16(arrayBuf, this.audioCtx);
+
+                    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const audioUrl = wsProto + '//' + location.host + '/ws/audio/' + encodeURIComponent(this.id);
+                    const streamUrl = wsProto + '//' + location.host + '/ws/stream/' + encodeURIComponent(this.id);
+
+                    this.wsAudio = new WebSocket(audioUrl);
+                    this.wsAudio.binaryType = 'arraybuffer';
+                    this.wsStream = new WebSocket(streamUrl);
+
+                    this.wsStream.onmessage = (e) => {
+                        try {
+                            const msg = JSON.parse(e.data);
+                            this.handleSubtitleMessage(msg);
+                        } catch(err){}
+                    };
+
+                    this.wsAudio.onopen = () => {
+                        const srcSel = document.getElementById('src-' + this.id);
+                        const tgtSel = document.getElementById('tgt-' + this.id);
+                        const srcLang = srcSel ? srcSel.value : this.cfg.sourceLang;
+                        const tgtLang = tgtSel ? tgtSel.value : this.cfg.targetLang;
+
+                        this.wsAudio.send(JSON.stringify({ source: srcLang, target: tgtLang }));
+                        this.isRunning = true;
+
+                        const chunkSize = 1024;
+                        let offset = 0;
+                        this.streamTimer = setInterval(() => {
+                            if (!this.isRunning || offset >= pcm16Data.length) {
+                                clearInterval(this.streamTimer);
+                                this.streamTimer = null;
+                                if (offset >= pcm16Data.length) {
+                                    this.setCardStatus('Done', 'badge-done');
+                                }
+                                this.resetVuMeter();
+                                return;
+                            }
+
+                            const chunk = pcm16Data.subarray(offset, offset + chunkSize);
+                            if (this.wsAudio && this.wsAudio.readyState === WebSocket.OPEN) {
+                                this.wsAudio.send(chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength));
+
+                                // Audio level VU calculation
+                                let sum = 0;
+                                for (let k = 0; k < chunk.length; k++) {
+                                    const val = chunk[k] / 32768.0;
+                                    sum += val * val;
+                                }
+                                this.updateVuMeter(Math.sqrt(sum / chunk.length));
+                            }
+                            offset += chunkSize;
+                        }, 64);
+                    };
+
+                    this.wsAudio.onerror = () => {
+                        this.setCardStatus('Error', 'badge');
+                    };
+
+                } catch (err) {
+                    console.error('Error starting stage stream ' + this.id, err);
+                    this.stop();
+                }
+            }
+
+            async captureTabAudio() {
+                // Stop any previous streaming first
+                this.stop();
+
+                try {
+                    const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+                    });
+
+                    const audioTracks = displayStream.getAudioTracks();
+                    if (!audioTracks || audioTracks.length === 0) {
+                        displayStream.getTracks().forEach(t => t.stop());
+                        alert("⚠️ No tab audio detected!\n\nWhen choosing a Chrome tab, make sure 'Also share tab audio' is CHECKED at the bottom of the prompt.\n\nPlease try again.");
+                        return;
+                    }
+
+                    this.displayStream = displayStream;
+                    this.tabMediaStream = new MediaStream(audioTracks);
+
+                    // Mount live video feed inside the stage card
+                    const videoTracks = displayStream.getVideoTracks();
+                    if (videoTracks && videoTracks.length > 0) {
+                        const videoEl = document.getElementById('live-video-' + this.id);
+                        const iframeEl = document.getElementById('iframe-' + this.id);
+                        const badgeEl = document.getElementById('video-badge-' + this.id);
+                        if (videoEl) {
+                            videoEl.srcObject = new MediaStream(videoTracks);
+                            videoEl.style.display = 'block';
+                            if (iframeEl) iframeEl.style.display = 'none';
+                            if (badgeEl) badgeEl.style.display = 'block';
+                        }
+                    }
+
+                    // Auto-stop if user stops sharing in Chrome's native bar
+                    audioTracks[0].onended = () => { this.stop(); };
+                    if (videoTracks && videoTracks[0]) {
+                        videoTracks[0].onended = () => { this.stop(); };
+                    }
+
+                    this.setCardStatus('Live Tab', 'badge-streaming');
+                    const card = document.getElementById('card-' + this.id);
+                    if (card) card.classList.add('active-streaming');
+
+                    const btn = document.getElementById('btn-stream-' + this.id);
+                    if (btn) {
+                        btn.textContent = '■ Stop Tab Stream';
+                        btn.className = 'btn btn-stop';
+                    }
+
+                    this.segments = [];
+                    this.interim = '';
+                    this.translation = '';
+
+                    const origEl = document.getElementById('orig-' + this.id);
+                    const transEl = document.getElementById('trans-' + this.id);
+                    if (origEl) origEl.textContent = 'Listening to tab audio...';
+                    if (transEl) transEl.textContent = 'Connecting to Gemini Live...';
+
+                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (this.audioCtx.state === 'suspended') {
+                        await this.audioCtx.resume();
+                    }
+
+                    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const audioUrl = wsProto + '//' + location.host + '/ws/audio/' + encodeURIComponent(this.id);
+                    const streamUrl = wsProto + '//' + location.host + '/ws/stream/' + encodeURIComponent(this.id);
+
+                    this.wsAudio = new WebSocket(audioUrl);
+                    this.wsAudio.binaryType = 'arraybuffer';
+                    this.wsStream = new WebSocket(streamUrl);
+
+                    this.wsStream.onmessage = (e) => {
+                        try {
+                            const msg = JSON.parse(e.data);
+                            this.handleSubtitleMessage(msg);
+                        } catch(err){}
+                    };
+
+                    const srcSel = document.getElementById('src-' + this.id);
+                    const tgtSel = document.getElementById('tgt-' + this.id);
+                    const srcLang = srcSel ? srcSel.value : this.cfg.sourceLang;
+                    const tgtLang = tgtSel ? tgtSel.value : this.cfg.targetLang;
+
+                    this.wsAudio.onopen = async () => {
+                        this.wsAudio.send(JSON.stringify({ source: srcLang, target: tgtLang }));
+                        this.isRunning = true;
+
+                        try {
+                            const source = this.audioCtx.createMediaStreamSource(this.tabMediaStream);
+
+                            const processorCode = `
+class StagePCM16Processor extends AudioWorkletProcessor {
+    constructor() {
+        super();
+        this.buffer = new Int16Array(1024);
+        this.offset = 0;
+        this.targetRate = 16000;
+        this.ratio = sampleRate / this.targetRate;
+        this.fraction = 0;
+        this.lastSample = 0;
+        this.rmsSum = 0;
+        this.rmsCount = 0;
+        this.volCount = 0;
+    }
+    process(inputs) {
+        const input = inputs[0];
+        if (!input || !input[0]) return true;
+        const ch = input[0];
+        for (let i = 0; i < ch.length; i++) {
+            const current = ch[i];
+            this.rmsSum += current * current;
+            this.rmsCount++;
+            while (this.fraction < 1.0) {
+                const interpolated = this.lastSample + (current - this.lastSample) * this.fraction;
+                const clamped = Math.max(-1, Math.min(1, interpolated));
+                this.buffer[this.offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+                if (this.offset >= 1024) {
+                    this.port.postMessage({ type: 'audio', data: this.buffer.buffer.slice(0) });
+                    this.offset = 0;
+                }
+                this.fraction += this.ratio;
+            }
+            this.fraction -= 1.0;
+            this.lastSample = current;
+        }
+        this.volCount++;
+        if (this.volCount >= 8) {
+            const rms = this.rmsCount > 0 ? Math.sqrt(this.rmsSum / this.rmsCount) : 0;
+            this.port.postMessage({ type: 'volume', val: rms });
+            this.rmsSum = 0; this.rmsCount = 0; this.volCount = 0;
+        }
+        return true;
+    }
+}
+registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
+`;
+                            const blob = new Blob([processorCode], { type: 'application/javascript' });
+                            const workletUrl = URL.createObjectURL(blob);
+                            await this.audioCtx.audioWorklet.addModule(workletUrl);
+                            URL.revokeObjectURL(workletUrl);
+
+                            this.workletNode = new AudioWorkletNode(this.audioCtx, `stage-pcm16-${this.id}`);
+                            this.workletNode.port.onmessage = (e) => {
+                                if (e.data.type === 'volume') {
+                                    this.updateVuMeter(e.data.val);
+                                } else if (e.data.type === 'audio') {
+                                    if (this.isRunning && this.wsAudio && this.wsAudio.readyState === WebSocket.OPEN) {
+                                        this.wsAudio.send(e.data.data);
+                                    }
+                                }
+                            };
+                            source.connect(this.workletNode);
+                            const silentGain = this.audioCtx.createGain();
+                            silentGain.gain.value = 0;
+                            this.workletNode.connect(silentGain);
+                            silentGain.connect(this.audioCtx.destination);
+                        } catch(wErr) {
+                            console.error('Worklet setup error on ' + this.id, wErr);
+                        }
+                    };
+
+                    this.wsAudio.onerror = (e) => {
+                        console.error('WS Audio error on ' + this.id, e);
+                    };
+
+                } catch(err) {
+                    if (err.name !== 'NotAllowedError') {
+                        alert('Could not capture tab audio: ' + (err.message || err));
+                    }
+                    this.stop();
+                }
+            }
+
+            stop() {
+                this.isRunning = false;
+                if (this.streamTimer) { clearInterval(this.streamTimer); this.streamTimer = null; }
+                if (this.displayStream) {
+                    this.displayStream.getTracks().forEach(t => t.stop());
+                    this.displayStream = null;
+                }
+                if (this.tabMediaStream) {
+                    this.tabMediaStream.getTracks().forEach(t => t.stop());
+                    this.tabMediaStream = null;
+                }
+                if (this.workletNode) { this.workletNode.disconnect(); this.workletNode = null; }
+                if (this.audioCtx) { this.audioCtx.close().catch(()=>{}); this.audioCtx = null; }
+                if (this.wsAudio) { this.wsAudio.close(); this.wsAudio = null; }
+                if (this.wsStream) { this.wsStream.close(); this.wsStream = null; }
+
+                // Restore video container to default iframe
+                const videoEl = document.getElementById('live-video-' + this.id);
+                const iframeEl = document.getElementById('iframe-' + this.id);
+                const badgeEl = document.getElementById('video-badge-' + this.id);
+                if (videoEl) {
+                    if (videoEl.srcObject) {
+                        videoEl.srcObject.getTracks().forEach(t => t.stop());
+                        videoEl.srcObject = null;
+                    }
+                    videoEl.style.display = 'none';
+                }
+                if (iframeEl) iframeEl.style.display = 'block';
+                if (badgeEl) badgeEl.style.display = 'none';
+
+                this.sendIframeCommand('pauseVideo');
+                this.resetVuMeter();
+                this.setCardStatus('Ready', 'badge-ready');
+
+                const card = document.getElementById('card-' + this.id);
+                if (card) card.classList.remove('active-streaming');
+
+                const btn = document.getElementById('btn-stream-' + this.id);
+                if (btn) {
+                    btn.textContent = '🖥️ Capture Tab Video & Audio';
+                    btn.className = 'btn btn-start';
+                }
+            }
+
+            handleSubtitleMessage(msg) {
+                if (msg.type === 'transcription_interim') {
+                    this.interim = msg.text.trim();
+                } else if (msg.type === 'transcription') {
+                    const clean = msg.text.trim();
+                    if (clean && (this.segments.length === 0 || this.segments[this.segments.length - 1] !== clean)) {
+                        this.segments.push(clean);
+                    }
+                    this.interim = '';
+                } else if (msg.type === 'transcription_done') {
+                    this.interim = '';
+                } else if (msg.type === 'translation') {
+                    this.translation += msg.text;
+                } else if (msg.type === 'translation_done') {
+                    this.translation += ' ';
+                } else if (msg.type === 'status') {
+                    // status from server
+                }
+
+                const origEl = document.getElementById('orig-' + this.id);
+                const transEl = document.getElementById('trans-' + this.id);
+                const subBox = document.getElementById('sub-box-' + this.id);
+
+                if (origEl) {
+                    let full = this.segments.join(' ');
+                    if (this.interim) full = full ? (full + ' ' + this.interim) : this.interim;
+                    origEl.textContent = full || 'Listening to tab audio...';
+                    origEl.style.opacity = this.interim ? '0.7' : '1';
+                }
+                if (transEl) {
+                    transEl.textContent = this.translation.trim() || 'Translating live...';
+                }
+                if (subBox) {
+                    subBox.scrollTop = subBox.scrollHeight;
+                }
+            }
+
+            updateVuMeter(rms) {
+                const bar = document.getElementById('vubar-' + this.id);
+                if (!bar) return;
+                const pct = Math.min(100, Math.round(Math.pow(rms * 2.5, 0.7) * 100));
+                bar.style.width = pct + '%';
+                if (pct > 75) bar.style.background = 'var(--error)';
+                else if (pct > 40) bar.style.background = 'var(--accent)';
+                else bar.style.background = 'var(--success)';
+            }
+
+            resetVuMeter() {
+                const bar = document.getElementById('vubar-' + this.id);
+                if (bar) bar.style.width = '0%';
+            }
+
+            setCardStatus(text, badgeClass) {
+                const badge = document.getElementById('badge-' + this.id);
+                if (badge) {
+                    badge.className = 'badge ' + badgeClass;
+                    badge.textContent = text;
+                }
+            }
+
+            sendIframeCommand(cmd) {
+                const iframe = document.getElementById('iframe-' + this.id);
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(JSON.stringify({
+                        event: 'command',
+                        func: cmd,
+                        args: []
+                    }), '*');
+                }
+            }
+        }
+
+        const stageRunners = {};
+        VIDEO_STAGES_CONFIG.forEach(cfg => {
+            stageRunners[cfg.id] = new StageRunner(cfg);
+        });
+
+        window.toggleStageStreaming = function(stageId) {
+            const runner = stageRunners[stageId];
+            if (!runner) return;
+            if (runner.isRunning) {
+                runner.stop();
+            } else {
+                runner.captureTabAudio();
+            }
         };
+
+        window.captureTabAudioForStage = function(stageId) {
+            const runner = stageRunners[stageId];
+            if (runner) runner.captureTabAudio();
+        };
+
+        window.openAllYouTubeTabs = function() {
+            let blockedCount = 0;
+            VIDEO_STAGES_CONFIG.forEach(cfg => {
+                try {
+                    const win = window.open(cfg.defaultUrl, '_blank');
+                    if (!win || win.closed || typeof win.closed === 'undefined') {
+                        blockedCount++;
+                    }
+                } catch(e) {
+                    blockedCount++;
+                }
+            });
+            const hint = document.getElementById('popup-blocked-hint');
+            if (hint) {
+                hint.style.display = blockedCount > 0 ? 'inline' : 'none';
+            }
+        };
+
+        window.stopAllVideoStages = function() {
+            Object.values(stageRunners).forEach(r => r.stop());
+        };
+
+        window.updateStageVideoUrl = function(stageId, url) {
+            if (!url) return;
+            const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(regExp);
+            const videoId = match ? match[1] : url.trim();
+            const timeMatch = url.match(/[?&]t=(\d+)s?/);
+            const startParam = timeMatch ? `&start=${timeMatch[1]}` : '';
+            const iframe = document.getElementById('iframe-' + stageId);
+            if (iframe && videoId) {
+                iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0${startParam}`;
+            }
+        };
+
+        window.copyObsOverlayLink = function(sessionId) {
+            const url = location.origin + '?overlay=true&session=' + encodeURIComponent(sessionId);
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`✓ Copied OBS Browser Source URL for "${sessionId}" to clipboard!\n\n${url}\n\nAdd this as a Browser Source (width: 1920, height: 1080) in OBS for clean, transparent live subtitles!`);
+            }).catch(() => {
+                prompt('Copy this OBS Browser Source URL:', url);
+            });
+        };
+
+        // ============================================================
+        // PRESENTER LIVE MIC IN STUDIO VIEW
+        // ============================================================
+        let studioMicRunning = false;
+        let studioMicWs = null;
+        let studioStreamWs = null;
+        let studioMediaStream = null;
+        let studioAudioCtx = null;
+        let studioGainNode = null;
+        let studioWorkletNode = null;
+        let studioSegments = [];
+        let studioInterim = '';
+        let studioTranslation = '';
+
+        window.updateStudioBoost = function(val) {
+            updateMicBoost(val);
+            const label = document.getElementById('studio-boost-val');
+            if (label) label.textContent = parseFloat(val).toFixed(1) + 'x';
+            if (studioGainNode) studioGainNode.gain.value = parseFloat(val);
+        };
+
+        window.swapStudioMicLanguages = function() {
+            const src = document.getElementById('studio-mic-source-lang');
+            const tgt = document.getElementById('studio-mic-target-lang');
+            const tmp = src.value;
+            src.value = tgt.value;
+            tgt.value = tmp;
+            const badge = document.getElementById('presenter-lang-badge');
+            if (badge) badge.textContent = src.value.toUpperCase() + ' → ' + tgt.value.toUpperCase();
+        };
+
+        window.onStudioMicChanged = function() {
+            const val = document.getElementById('studio-mic-select').value;
+            const consoleSel = document.getElementById('mic-select');
+            if (consoleSel) consoleSel.value = val;
+            onMicrophoneSelected();
+        };
+
+        window.toggleStudioMic = async function() {
+            const btn = document.getElementById('btn-studio-mic');
+            const badge = document.getElementById('presenter-badge');
+            const origEl = document.getElementById('presenter-original');
+            const transEl = document.getElementById('presenter-translation');
+            const vuBar = document.getElementById('presenter-vu-bar');
+
+            if (studioMicRunning) {
+                studioMicRunning = false;
+                if (studioMediaStream) { studioMediaStream.getTracks().forEach(t => t.stop()); studioMediaStream = null; }
+                if (studioWorkletNode) { studioWorkletNode.disconnect(); studioWorkletNode = null; }
+                if (studioGainNode) { studioGainNode.disconnect(); studioGainNode = null; }
+                if (studioAudioCtx) { studioAudioCtx.close().catch(()=>{}); studioAudioCtx = null; }
+                if (studioMicWs) { studioMicWs.close(); studioMicWs = null; }
+                if (studioStreamWs) { studioStreamWs.close(); studioStreamWs = null; }
+
+                if (btn) {
+                    btn.textContent = '▶ Start Presenter Mic';
+                    btn.className = 'btn btn-start';
+                }
+                if (badge) {
+                    badge.className = 'badge badge-ready';
+                    badge.textContent = 'Ready';
+                }
+                if (vuBar) vuBar.style.width = '0%';
+                return;
+            }
+
+            try {
+                const deviceId = document.getElementById('studio-mic-select').value;
+                const sourceLang = document.getElementById('studio-mic-source-lang').value;
+                const targetLang = document.getElementById('studio-mic-target-lang').value;
+
+                const devSel = document.getElementById('studio-mic-select');
+                const devText = (devSel && devSel.options[devSel.selectedIndex]) ? devSel.options[devSel.selectedIndex].text.toLowerCase() : '';
+                const isHeadset = devText.includes('buds') || devText.includes('airpod') || devText.includes('headset') || devText.includes('bluetooth') || devText.includes('wireless');
+
+                const constraints = {
+                    audio: {
+                        channelCount: 1,
+                        echoCancellation: !isHeadset,
+                        noiseSuppression: !isHeadset,
+                        autoGainControl: true,
+                    }
+                };
+                if (deviceId && deviceId !== 'default') {
+                    constraints.audio.deviceId = { ideal: deviceId };
+                }
+
+                studioMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                try {
+                    studioAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                } catch (e) {
+                    studioAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (studioAudioCtx.state === 'suspended') {
+                    await studioAudioCtx.resume();
+                }
+
+                studioGainNode = studioAudioCtx.createGain();
+                studioGainNode.gain.value = currentMicBoost;
+
+                const source = studioAudioCtx.createMediaStreamSource(studioMediaStream);
+                source.connect(studioGainNode);
+
+                const processorCode = `
+class PresenterPCM16Processor extends AudioWorkletProcessor {
+    constructor() {
+        super();
+        this.buffer = new Int16Array(1024);
+        this.offset = 0;
+        this.targetRate = 16000;
+        this.ratio = sampleRate / this.targetRate;
+        this.fraction = 0;
+        this.lastSample = 0;
+        this.rmsSum = 0; this.rmsCount = 0; this.volCount = 0;
+    }
+    process(inputs) {
+        const input = inputs[0];
+        if (!input || !input[0]) return true;
+        const ch = input[0];
+        const len = ch.length;
+        if (len === 0) return true;
+
+        if (sampleRate === 16000) {
+            for (let i = 0; i < len; i++) {
+                const s = ch[i];
+                this.rmsSum += s * s;
+                this.rmsCount++;
+                const clamped = Math.max(-1, Math.min(1, s));
+                this.buffer[this.offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+                if (this.offset >= 1024) {
+                    this.port.postMessage({ type: 'audio', data: this.buffer.buffer.slice(0) });
+                    this.offset = 0;
+                }
+            }
+        } else {
+            for (let i = 0; i < len; i++) {
+                const current = ch[i];
+                this.rmsSum += current * current;
+                this.rmsCount++;
+                while (this.fraction < 1.0) {
+                    const interpolated = this.lastSample + (current - this.lastSample) * this.fraction;
+                    const clamped = Math.max(-1, Math.min(1, interpolated));
+                    this.buffer[this.offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+                    if (this.offset >= 1024) {
+                        this.port.postMessage({ type: 'audio', data: this.buffer.buffer.slice(0) });
+                        this.offset = 0;
+                    }
+                    this.fraction += this.ratio;
+                }
+                this.fraction -= 1.0;
+                this.lastSample = current;
+            }
+        }
+
+        this.volCount++;
+        if (this.volCount >= 8) {
+            const rms = this.rmsCount > 0 ? Math.sqrt(this.rmsSum / this.rmsCount) : 0;
+            this.port.postMessage({ type: 'volume', val: rms });
+            this.rmsSum = 0; this.rmsCount = 0; this.volCount = 0;
+        }
+        return true;
+    }
+}
+registerProcessor('presenter-pcm16', PresenterPCM16Processor);
+`;
+                const blob = new Blob([processorCode], { type: 'application/javascript' });
+                const workletUrl = URL.createObjectURL(blob);
+                await studioAudioCtx.audioWorklet.addModule(workletUrl);
+                URL.revokeObjectURL(workletUrl);
+
+                studioWorkletNode = new AudioWorkletNode(studioAudioCtx, 'presenter-pcm16');
+
+                const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                studioMicWs = new WebSocket(wsProto + '//' + location.host + '/ws/audio/Live%20Mic');
+                studioMicWs.binaryType = 'arraybuffer';
+                studioStreamWs = new WebSocket(wsProto + '//' + location.host + '/ws/stream/Live%20Mic');
+
+                studioSegments = [];
+                studioInterim = '';
+                studioTranslation = '';
+
+                studioStreamWs.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (msg.type === 'transcription_interim') {
+                            studioInterim = msg.text.trim();
+                        } else if (msg.type === 'transcription') {
+                            const clean = msg.text.trim();
+                            if (clean && (studioSegments.length === 0 || studioSegments[studioSegments.length - 1] !== clean)) {
+                                studioSegments.push(clean);
+                            }
+                            studioInterim = '';
+                        } else if (msg.type === 'translation') {
+                            studioTranslation += msg.text;
+                        }
+
+                        if (origEl) {
+                            let full = studioSegments.join(' ');
+                            if (studioInterim) full = full ? (full + ' ' + studioInterim) : studioInterim;
+                            origEl.textContent = full || 'Listening to your voice...';
+                            origEl.style.opacity = studioInterim ? '0.75' : '1';
+                        }
+                        if (transEl) {
+                            transEl.textContent = studioTranslation || 'Translating in real time...';
+                        }
+                    } catch(err){}
+                };
+
+                studioWorkletNode.port.onmessage = (e) => {
+                    if (e.data.type === 'volume') {
+                        if (vuBar) {
+                            const pct = Math.min(100, Math.round(Math.pow(e.data.val * 2.5, 0.7) * 100));
+                            vuBar.style.width = pct + '%';
+                            if (pct > 75) vuBar.style.background = 'var(--error)';
+                            else if (pct > 40) vuBar.style.background = 'var(--accent)';
+                            else vuBar.style.background = 'var(--success)';
+                        }
+                    } else if (e.data.type === 'audio') {
+                        if (studioMicRunning && studioMicWs && studioMicWs.readyState === WebSocket.OPEN) {
+                            studioMicWs.send(e.data.data);
+                        }
+                    }
+                };
+
+                studioGainNode.connect(studioWorkletNode);
+
+                studioMicWs.onopen = () => {
+                    studioMicWs.send(JSON.stringify({ source: sourceLang, target: targetLang }));
+                    studioMicRunning = true;
+                    if (btn) {
+                        btn.textContent = '⏹ Stop Mic';
+                        btn.className = 'btn btn-stop';
+                    }
+                    if (badge) {
+                        badge.className = 'badge badge-streaming';
+                        badge.textContent = 'Live On Air';
+                    }
+                    if (origEl) origEl.textContent = 'Habla al micrófono para comenzar a transcribir...';
+                    if (transEl) transEl.textContent = 'Speak into your microphone to start translating...';
+                };
+
+            } catch (err) {
+                alert('Could not start presenter microphone: ' + (err.message || err));
+                if (btn) btn.textContent = '▶ Start Presenter Mic';
+            }
+        };
+
+        // Render Studio 3-Stage Cards
+        function renderStudioStagesGrid() {
+            const grid = document.getElementById('studio-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            VIDEO_STAGES_CONFIG.forEach(cfg => {
+                const card = document.createElement('div');
+                card.className = 'stage-card';
+                card.id = 'card-' + cfg.id;
+                card.innerHTML = `
+                    <div class="stage-card-header">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">${cfg.icon}</span>
+                            <div>
+                                <strong style="font-size: 13px;">${escapeHtml(cfg.title)}</strong>
+                                <div style="font-size: 10px; color: var(--text-muted);">${escapeHtml(cfg.description)}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="badge badge-ready" id="badge-${cfg.id}">Ready</span>
+                            <div class="vu-meter" style="width: 60px;">
+                                <div class="vu-bar" id="vubar-${cfg.id}"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="video-container" id="video-container-${cfg.id}">
+                        <iframe id="iframe-${cfg.id}" src="${cfg.embedUrl || ('https://www.youtube.com/embed/' + cfg.defaultYoutubeId + '?enablejsapi=1&rel=0')}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <video id="live-video-${cfg.id}" autoplay playsinline muted style="display: none;"></video>
+                        <div id="video-badge-${cfg.id}" style="display: none; position: absolute; top: 8px; left: 8px; background: rgba(248,81,73,0.92); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; z-index: 5;">● LIVE TAB FEED</div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                        <a href="${cfg.defaultUrl}" target="_blank" style="font-size: 11px; color: var(--accent); font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+                            🔗 Open Video in New Tab ↗
+                        </a>
+                        <button type="button" class="btn btn-secondary" onclick="copyObsOverlayLink('${cfg.id}')" style="padding: 3px 8px; font-size: 10px;" title="Copy OBS Browser Source URL">
+                            📺 OBS
+                        </button>
+                    </div>
+
+                    <div class="stage-config-row">
+                        <div style="display: flex; gap: 6px; align-items: center; flex: 1;">
+                            <label style="font-size: 10px; color: var(--text-muted);">From:</label>
+                            <select id="src-${cfg.id}" style="font-size: 11px; padding: 4px; flex: 1;">
+                                <option value="en" ${cfg.sourceLang === 'en' ? 'selected' : ''}>🇺🇸 English</option>
+                                <option value="es" ${cfg.sourceLang === 'es' ? 'selected' : ''}>🇦🇷 Español</option>
+                                <option value="pt" ${cfg.sourceLang === 'pt' ? 'selected' : ''}>🇧🇷 Português</option>
+                            </select>
+                            <span style="color: var(--text-muted); font-size: 11px;">→</span>
+                            <label style="font-size: 10px; color: var(--text-muted);">To:</label>
+                            <select id="tgt-${cfg.id}" style="font-size: 11px; padding: 4px; flex: 1;">
+                                <option value="es" ${cfg.targetLang === 'es' ? 'selected' : ''}>🇦🇷 Español</option>
+                                <option value="en" ${cfg.targetLang === 'en' ? 'selected' : ''}>🇺🇸 English</option>
+                                <option value="pt" ${cfg.targetLang === 'pt' ? 'selected' : ''}>🇧🇷 Português</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 6px;">
+                        <button type="button" class="btn btn-start" id="btn-stream-${cfg.id}" onclick="toggleStageStreaming('${cfg.id}')" style="width: 100%; padding: 8px; font-size: 12px; font-weight: 600;">
+                            🖥️ Capture Tab Video & Audio
+                        </button>
+                    </div>
+
+                    <div class="stage-subtitles-box" id="sub-box-${cfg.id}">
+                        <div class="stage-sub-orig" id="orig-${cfg.id}">Original speech will appear here when video plays...</div>
+                        <div class="stage-sub-trans" id="trans-${cfg.id}">Translated subtitles will stream in real time...</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
 
         // ============================================================
         // 3. AUDIO SOURCE TOGGLE & MICROPHONE LOADING
@@ -886,6 +2089,7 @@
 
             if (src === 'mic') {
                 sessionInput.value = 'Live Mic';
+                loadMicrophones(false);
             } else if (src === 'tab') {
                 sessionInput.value = 'YouTube Live';
             } else if (src === 'sample') {
@@ -1049,6 +2253,9 @@
             clearTranscript();
 
             audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
             isRunning = true;
 
             const tabsContainer = document.getElementById('stage-tabs-container');
@@ -1140,7 +2347,7 @@
                             }
                             const chunk = pcm16Data.subarray(offset, offset + chunkSize);
                             if (wsAudio.readyState === WebSocket.OPEN) {
-                                wsAudio.send(chunk.buffer);
+                                wsAudio.send(chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength));
                             }
                             offset += chunkSize;
                             const pct = Math.min(100, Math.round((offset / pcm16Data.length) * 100));
@@ -1219,31 +2426,245 @@
             }
         }
 
-        (async function loadMicrophones() {
+        window.updateMicBoost = function(val) {
+            currentMicBoost = parseFloat(val);
+            const db = Math.round(20 * Math.log10(currentMicBoost) * 10) / 10;
+            const label = document.getElementById('mic-boost-val');
+            if (label) {
+                label.textContent = currentMicBoost.toFixed(1) + 'x (' + (db >= 0 ? '+' : '') + db + ' dB)';
+            }
+            if (gainNode) {
+                gainNode.gain.value = currentMicBoost;
+            }
+        };
+
+        window.onProfileChanged = function() {
+            const profile = document.getElementById('mic-profile').value;
+            const slider = document.getElementById('mic-boost-slider');
+            if (profile === 'headset') {
+                slider.value = '1.5';
+                updateMicBoost('1.5');
+            } else if (profile === 'laptop') {
+                slider.value = '1.2';
+                updateMicBoost('1.2');
+            } else if (profile === 'studio') {
+                slider.value = '1.0';
+                updateMicBoost('1.0');
+            }
+        };
+
+        window.onMicrophoneSelected = function() {
+            const sel = document.getElementById('mic-select');
+            const studioSel = document.getElementById('studio-mic-select');
+            if (sel && studioSel && sel.value !== studioSel.value) {
+                studioSel.value = sel.value;
+            }
+            if (!sel || sel.selectedIndex < 0) return;
+            const opt = sel.options[sel.selectedIndex];
+            const text = (opt ? opt.text : '').toLowerCase();
+            // If device appears to be bluetooth earbuds/headset, auto-select headset profile
+            if (text.includes('buds') || text.includes('airpod') || text.includes('headset') || text.includes('bluetooth') || text.includes('wireless')) {
+                const prof = document.getElementById('mic-profile');
+                if (prof && prof.value !== 'headset') {
+                    prof.value = 'headset';
+                    onProfileChanged();
+                }
+            }
+        };
+
+        async function loadMicrophones(forcePrompt) {
+            const select = document.getElementById('mic-select');
+            const studioSelect = document.getElementById('studio-mic-select');
+            const rescanBtn = document.getElementById('btn-rescan-mics');
+            if (rescanBtn) rescanBtn.textContent = '🔄 Scanning...';
+
+            const currentVal = select ? select.value : (studioSelect ? studioSelect.value : 'default');
+
             try {
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    await navigator.mediaDevices.getUserMedia({ audio: true })
-                        .then(function(s) { s.getTracks().forEach(function(t) { t.stop(); }); });
+                if (forcePrompt && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    try {
+                        const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        s.getTracks().forEach(t => t.stop());
+                    } catch(e){}
+                }
+
+                if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
                     const devices = await navigator.mediaDevices.enumerateDevices();
-                    const select = document.getElementById('mic-select');
-                    select.innerHTML = '';
-                    const inputs = devices.filter(function(d) { return d.kind === 'audioinput'; });
-                    if (inputs.length === 0) {
-                        select.innerHTML = '<option value="">No microphones found</option>';
-                        return;
-                    }
-                    inputs.forEach(function(device, i) {
-                        const opt = document.createElement('option');
-                        opt.value = device.deviceId;
-                        opt.textContent = device.label || ('Microphone ' + (i + 1));
-                        select.appendChild(opt);
+                    const inputs = devices.filter(d => d.kind === 'audioinput');
+
+                    const targetSelects = [select, studioSelect].filter(Boolean);
+                    let detectedEarbuds = false;
+
+                    targetSelects.forEach(sel => {
+                        const prevVal = sel.value || currentVal;
+                        sel.innerHTML = '';
+
+                        // Always have Default System Input at top
+                        const defaultOpt = document.createElement('option');
+                        defaultOpt.value = 'default';
+                        defaultOpt.textContent = 'Default System Microphone (Follows macOS Sound Settings)';
+                        sel.appendChild(defaultOpt);
+
+                        inputs.forEach((device, i) => {
+                            if (device.deviceId === 'default' || device.deviceId === 'communications') return;
+                            const opt = document.createElement('option');
+                            opt.value = device.deviceId;
+                            const label = device.label || ('Microphone ' + (i + 1));
+                            const lower = label.toLowerCase();
+                            if (lower.includes('buds') || lower.includes('airpod') || lower.includes('headset') || lower.includes('bluetooth') || lower.includes('wireless')) {
+                                opt.textContent = '🎧 ' + label + ' (Bluetooth Headset)';
+                                detectedEarbuds = true;
+                            } else if (lower.includes('macbook') || lower.includes('built-in') || lower.includes('internal')) {
+                                opt.textContent = '💻 ' + label + ' (Built-in)';
+                            } else {
+                                opt.textContent = '🎙️ ' + label;
+                            }
+                            sel.appendChild(opt);
+                        });
+
+                        // Restore previous selection if still available
+                        if (prevVal) {
+                            for (let j = 0; j < sel.options.length; j++) {
+                                if (sel.options[j].value === prevVal) {
+                                    sel.selectedIndex = j;
+                                    break;
+                                }
+                            }
+                        }
                     });
+
+                    if (detectedEarbuds) {
+                        onMicrophoneSelected();
+                    }
                 }
             } catch (err) {
-                document.getElementById('mic-select').innerHTML =
-                    '<option value="">Microphone access denied (or using sample mode)</option>';
+                console.warn('Microphone enumeration notice:', err);
+            } finally {
+                if (rescanBtn) rescanBtn.textContent = '🔄 Rescan Devices';
             }
-        })();
+        }
+        window.loadMicrophones = loadMicrophones;
+
+        // Listen for Bluetooth headset connect/disconnect events dynamically
+        if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+            navigator.mediaDevices.addEventListener('devicechange', function() {
+                loadMicrophones(false);
+            });
+        }
+
+        // Test Microphone Level Mode
+        async function toggleMicTest() {
+            const testContainer = document.getElementById('mic-test-container');
+            const testBtn = document.getElementById('btn-test-mic');
+            const testBar = document.getElementById('mic-test-bar');
+            const testDb = document.getElementById('mic-test-db');
+
+            if (isTestingMic) {
+                isTestingMic = false;
+                if (micStreamForTest) {
+                    micStreamForTest.getTracks().forEach(t => t.stop());
+                    micStreamForTest = null;
+                }
+                if (micTestAudioCtx) {
+                    micTestAudioCtx.close().catch(()=>{});
+                    micTestAudioCtx = null;
+                }
+                if (testContainer) testContainer.style.display = 'none';
+                if (testBtn) {
+                    testBtn.textContent = '🎙️ Test Mic';
+                    testBtn.style.background = '';
+                }
+                return;
+            }
+
+            isTestingMic = true;
+            if (testBtn) {
+                testBtn.textContent = '⏹ Stop Test';
+                testBtn.style.background = 'rgba(248,81,73,0.2)';
+            }
+            if (testContainer) testContainer.style.display = 'block';
+
+            try {
+                const deviceId = document.getElementById('mic-select').value;
+                const profile = document.getElementById('mic-profile').value;
+                const isHeadset = (profile === 'headset');
+
+                const constraints = {
+                    audio: {
+                        channelCount: 1,
+                        echoCancellation: !isHeadset,
+                        noiseSuppression: !isHeadset,
+                        autoGainControl: true,
+                    }
+                };
+                if (deviceId && deviceId !== 'default') {
+                    constraints.audio.deviceId = { ideal: deviceId };
+                }
+
+                micStreamForTest = await navigator.mediaDevices.getUserMedia(constraints);
+                micTestAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (micTestAudioCtx.state === 'suspended') {
+                    await micTestAudioCtx.resume();
+                }
+
+                const source = micTestAudioCtx.createMediaStreamSource(micStreamForTest);
+                const testGain = micTestAudioCtx.createGain();
+                testGain.gain.value = currentMicBoost;
+
+                const analyser = micTestAudioCtx.createAnalyser();
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.3;
+                source.connect(testGain);
+                testGain.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                function testAnimLoop() {
+                    if (!isTestingMic) return;
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        sum += dataArray[i];
+                    }
+                    const avg = sum / dataArray.length; // 0..255
+                    const pct = Math.min(100, Math.round((avg / 100) * 100));
+
+                    if (testBar) {
+                        testBar.style.width = pct + '%';
+                        if (pct > 75) {
+                            testBar.style.background = 'var(--error)';
+                        } else if (pct > 40) {
+                            testBar.style.background = 'var(--accent)';
+                        } else {
+                            testBar.style.background = 'var(--success)';
+                        }
+                    }
+                    if (testDb) testDb.textContent = 'Level: ' + pct + '%';
+
+                    requestAnimationFrame(testAnimLoop);
+                }
+                testAnimLoop();
+
+            } catch (err) {
+                alert('Could not start mic test: ' + (err.message || err));
+                toggleMicTest();
+            }
+        }
+        window.toggleMicTest = toggleMicTest;
+
+        // Initial device scan, studio grid setup, and view selection on load
+        loadMicrophones(false);
+        renderStudioStagesGrid();
+
+        if (viewParam === 'console') {
+            switchView('console');
+        } else if (viewParam === 'audience') {
+            switchView('audience');
+        } else if (viewParam === 'monitor') {
+            switchView('monitor');
+        } else {
+            switchView('studio');
+        }
 
         window.swapLanguages = function() {
             const src = document.getElementById('source-lang');
@@ -1256,6 +2677,29 @@
         // ============================================================
         // 4. STREAMING ENGINE (MIC, TAB, BUILT-IN SAMPLE OR UPLOAD)
         // ============================================================
+        function updateVuMeter(rms) {
+            const meterEl = document.getElementById('vu-meter');
+            const barEl = document.getElementById('vu-bar');
+            if (!meterEl || !barEl) return;
+            meterEl.style.display = 'inline-block';
+            const pct = Math.min(100, Math.round(Math.pow(rms * 2.5, 0.7) * 100));
+            barEl.style.width = pct + '%';
+            if (pct > 75) {
+                barEl.style.background = 'var(--error)';
+            } else if (pct > 40) {
+                barEl.style.background = 'var(--accent)';
+            } else {
+                barEl.style.background = 'var(--success)';
+            }
+        }
+
+        function resetVuMeter() {
+            const meterEl = document.getElementById('vu-meter');
+            const barEl = document.getElementById('vu-bar');
+            if (barEl) barEl.style.width = '0%';
+            if (meterEl) meterEl.style.display = 'none';
+        }
+
         window.startSession = async function() {
             const sessionId = document.getElementById('session-id').value.trim();
             if (!sessionId) { alert('Please enter a Stage/Session ID'); return; }
@@ -1272,14 +2716,38 @@
                 return;
             }
 
+            // Step 1: Initialize AudioContext and acquire media stream synchronously within user gesture
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            } catch (e) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
+            if (inputType === 'mic') {
+                try {
+                    await startMicCapture();
+                } catch (err) {
+                    alert('Could not access microphone: ' + (err.message || err));
+                    if (audioContext) { audioContext.close().catch(function(){}); audioContext = null; }
+                    return;
+                }
+            } else if (inputType === 'tab') {
+                const ok = await startTabAudioCapture();
+                if (!ok) {
+                    if (audioContext) { audioContext.close().catch(function(){}); audioContext = null; }
+                    return;
+                }
+            }
+
             setStatus('connecting', 'Connecting to Gemini Live...');
             setButtons(false);
             clearTranscript();
             document.getElementById('stage-tabs-container').style.display = 'none';
 
             try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-
                 // Establish Audio Input WebSocket to Go server
                 const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const wsUrl = wsProto + '//' + location.host + '/ws/audio/' + encodeURIComponent(sessionId);
@@ -1298,11 +2766,7 @@
                     document.getElementById('obs-link').style.display = 'block';
 
                     // Start Audio Input based on mode
-                    if (inputType === 'mic') {
-                        startMicCapture();
-                    } else if (inputType === 'tab') {
-                        startTabAudioCapture();
-                    } else if (inputType === 'sample') {
+                    if (inputType === 'sample') {
                         const sampleUrl = document.getElementById('sample-talk-select').value;
                         playAudioUrl(sampleUrl);
                     } else if (inputType === 'upload') {
@@ -1416,32 +2880,78 @@
             }
         };
 
-        // Shared AudioWorklet setup
+        // Shared AudioWorklet setup with sample rate resampling and VU meter measurement
         async function initAudioWorklet() {
             if (workletNode) return;
-            const processorCode = [
-                'class PCM16Processor extends AudioWorkletProcessor {',
-                '  constructor() {',
-                '    super();',
-                '    this.buffer = new Int16Array(1024);',
-                '    this.offset = 0;',
-                '  }',
-                '  process(inputs) {',
-                '    const ch = inputs[0][0];',
-                '    if (!ch) return true;',
-                '    for (let i = 0; i < ch.length; i++) {',
-                '      const s = Math.max(-1, Math.min(1, ch[i]));',
-                '      this.buffer[this.offset++] = s < 0 ? s * 0x8000 : s * 0x7FFF;',
-                '    }',
-                '    if (this.offset >= 1024) {',
-                '      this.port.postMessage(this.buffer.buffer.slice(0));',
-                '      this.offset = 0;',
-                '    }',
-                '    return true;',
-                '  }',
-                '}',
-                "registerProcessor('pcm16-processor', PCM16Processor);"
-            ].join('\n');
+            const processorCode = `
+class PCM16Processor extends AudioWorkletProcessor {
+    constructor() {
+        super();
+        this.buffer = new Int16Array(1024);
+        this.offset = 0;
+        this.targetRate = 16000;
+        this.ratio = sampleRate / this.targetRate;
+        this.fraction = 0;
+        this.lastSample = 0;
+        this.volumeCounter = 0;
+        this.rmsSum = 0;
+        this.rmsCount = 0;
+    }
+
+    process(inputs) {
+        const input = inputs[0];
+        if (!input || !input[0]) return true;
+        const ch = input[0];
+        const len = ch.length;
+        if (len === 0) return true;
+
+        if (sampleRate === 16000) {
+            for (let i = 0; i < len; i++) {
+                const s = ch[i];
+                this.rmsSum += s * s;
+                this.rmsCount++;
+                const clamped = Math.max(-1, Math.min(1, s));
+                this.buffer[this.offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+                if (this.offset >= 1024) {
+                    this.port.postMessage({ type: 'audio', data: this.buffer.buffer.slice(0) });
+                    this.offset = 0;
+                }
+            }
+        } else {
+            for (let i = 0; i < len; i++) {
+                const current = ch[i];
+                this.rmsSum += current * current;
+                this.rmsCount++;
+
+                while (this.fraction < 1.0) {
+                    const interpolated = this.lastSample + (current - this.lastSample) * this.fraction;
+                    const clamped = Math.max(-1, Math.min(1, interpolated));
+                    this.buffer[this.offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+                    if (this.offset >= 1024) {
+                        this.port.postMessage({ type: 'audio', data: this.buffer.buffer.slice(0) });
+                        this.offset = 0;
+                    }
+                    this.fraction += this.ratio;
+                }
+                this.fraction -= 1.0;
+                this.lastSample = current;
+            }
+        }
+
+        this.volumeCounter++;
+        if (this.volumeCounter >= 8) {
+            const rms = this.rmsCount > 0 ? Math.sqrt(this.rmsSum / this.rmsCount) : 0;
+            this.port.postMessage({ type: 'volume', val: rms });
+            this.rmsSum = 0;
+            this.rmsCount = 0;
+            this.volumeCounter = 0;
+        }
+
+        return true;
+    }
+}
+registerProcessor('pcm16-processor', PCM16Processor);
+`;
 
             const blob = new Blob([processorCode], { type: 'application/javascript' });
             const workletUrl = URL.createObjectURL(blob);
@@ -1450,28 +2960,57 @@
 
             workletNode = new AudioWorkletNode(audioContext, 'pcm16-processor');
             workletNode.port.onmessage = function(e) {
-                if (!isRunning || !websocket || websocket.readyState !== WebSocket.OPEN) return;
-                websocket.send(e.data);
+                if (e.data.type === 'volume') {
+                    updateVuMeter(e.data.val);
+                    return;
+                }
+                if (e.data.type === 'audio') {
+                    if (!isRunning || !websocket || websocket.readyState !== WebSocket.OPEN) return;
+                    websocket.send(e.data.data);
+                }
             };
         }
 
         // Live Microphone Capture
         async function startMicCapture() {
+            if (isTestingMic) {
+                await toggleMicTest();
+            }
+
             const deviceId = document.getElementById('mic-select').value;
-            mediaStream = await navigator.mediaDevices.getUserMedia({
+            const profile = document.getElementById('mic-profile').value;
+            const isHeadset = (profile === 'headset');
+            const isStudio = (profile === 'studio');
+
+            const constraints = {
                 audio: {
-                    deviceId: deviceId ? { exact: deviceId } : undefined,
                     channelCount: 1,
-                    sampleRate: { ideal: 16000 },
-                    echoCancellation: true,
-                    noiseSuppression: true
+                    echoCancellation: (isHeadset || isStudio) ? false : true,
+                    noiseSuppression: (isHeadset || isStudio) ? false : true,
+                    autoGainControl: !isStudio,
                 }
-            });
+            };
+
+            // Avoid OverconstrainedError in Chrome by omitting 'default' and using { ideal }
+            if (deviceId && deviceId !== 'default') {
+                constraints.audio.deviceId = { ideal: deviceId };
+            }
+
+            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
 
             const source = audioContext.createMediaStreamSource(mediaStream);
+            gainNode = audioContext.createGain();
+            gainNode.gain.value = currentMicBoost;
+
+            source.connect(gainNode);
             await initAudioWorklet();
-            source.connect(workletNode);
-            workletNode.connect(audioContext.destination);
+            gainNode.connect(workletNode);
+
+            // Keep audio graph alive in Chrome without playing through speakers
+            const silentGain = audioContext.createGain();
+            silentGain.gain.value = 0;
+            workletNode.connect(silentGain);
+            silentGain.connect(audioContext.destination);
         }
 
         // Browser Tab Audio Capture (YouTube & Web Videos)
@@ -1489,7 +3028,8 @@
                 const audioTracks = displayStream.getAudioTracks();
                 if (!audioTracks || audioTracks.length === 0) {
                     displayStream.getTracks().forEach(t => t.stop());
-                    throw new Error("No tab audio detected! When sharing your screen/tab, please select 'Chrome Tab' and ensure 'Also share tab audio' is enabled.");
+                    alert("⚠️ No tab audio detected!\n\nWhen sharing your screen/tab:\n1. Choose 'Chrome Tab'\n2. Ensure 'Also share tab audio' is CHECKED at the bottom.\n\nPlease try again.");
+                    return false;
                 }
 
                 // Stop video track as it is not needed
@@ -1506,10 +3046,18 @@
                 const source = audioContext.createMediaStreamSource(mediaStream);
                 await initAudioWorklet();
                 source.connect(workletNode);
-                workletNode.connect(audioContext.destination);
+                const silentGain = audioContext.createGain();
+                silentGain.gain.value = 0;
+                workletNode.connect(silentGain);
+                silentGain.connect(audioContext.destination);
+                return true;
 
             } catch (err) {
-                throw new Error(err.message || 'Failed to capture browser tab audio');
+                if (err.name === 'NotAllowedError') {
+                    return false; // User cancelled prompt
+                }
+                alert('Failed to capture browser tab audio: ' + (err.message || err));
+                return false;
             }
         }
 
@@ -1557,6 +3105,7 @@
                     if (!isRunning || !isPlayingFile || offset >= pcm16Data.length) {
                         clearInterval(timer);
                         isPlayingFile = false;
+                        resetVuMeter();
                         if (offset >= pcm16Data.length) {
                             addStatusCard('✓ Sample audio finished playing');
                         }
@@ -1564,7 +3113,13 @@
                     }
                     const chunk = pcm16Data.subarray(offset, offset + chunkSize);
                     if (websocket && websocket.readyState === WebSocket.OPEN) {
-                        websocket.send(chunk.buffer);
+                        websocket.send(chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength));
+                        let sum = 0;
+                        for (let k = 0; k < chunk.length; k++) {
+                            const val = chunk[k] / 32768.0;
+                            sum += val * val;
+                        }
+                        updateVuMeter(Math.sqrt(sum / chunk.length));
                     }
                     offset += chunkSize;
                 }, 64);
@@ -1578,10 +3133,12 @@
         window.stopSession = function() {
             isRunning = false;
             isPlayingFile = false;
+            resetVuMeter();
             if (multiStageWorkers.length > 0) {
                 multiStageWorkers.forEach(w => w.stop());
                 multiStageWorkers = [];
             }
+            if (gainNode) { gainNode.disconnect(); gainNode = null; }
             if (workletNode) { workletNode.disconnect(); workletNode = null; }
             if (audioContext) { audioContext.close().catch(function(){}); audioContext = null; }
             if (mediaStream) { mediaStream.getTracks().forEach(function(t){ t.stop(); }); mediaStream = null; }
