@@ -291,9 +291,9 @@ func (s *Server) runDualSession(
 			ActivityHandling: "NO_INTERRUPTION",
 			AutomaticActivityDetection: &gemini.AutomaticActivityDetection{
 				Disabled:                 false,
-				StartOfSpeechSensitivity: "START_SENSITIVITY_DEFAULT",
-				EndOfSpeechSensitivity:   "END_SENSITIVITY_DEFAULT",
-				PrefixPaddingMs:          200,
+				StartOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
+				EndOfSpeechSensitivity:   "END_SENSITIVITY_LOW",
+				PrefixPaddingMs:          100,
 				SilenceDurationMs:        800,
 			},
 		},
