@@ -169,13 +169,36 @@ go run main.go
 
 Abrí tu navegador en **http://localhost:8080**.
 
-### 3. Probar con Audio de Muestra (Sin Micrófono)
+### 3. Probar en Vivo (Micrófono, YouTube o Multi-Audio Simultáneo)
 
-Para evaluar el sistema inmediatamente sin hablar por un micrófono:
-1. En la consola principal, en **Audio Input Source**, seleccioná **"Sample Talk Audio (Built-in Test)"**.
-2. Hacé clic en **"Start Streaming & Subtitles"**.
-3. El frontend decodificará el archivo [`samples/sample-talk-test.wav`](./samples/sample-talk-test.wav) y lo transmitirá en tiempo real por WebSocket.
-4. Verás los subtítulos y transcripciones fluir de inmediato.
+El sistema ofrece 4 modalidades flexibles de entrada de audio:
+
+#### A. 🎙️ Micrófono en Vivo (`Live Mic`)
+- Por defecto, la aplicación inicia en modo **Live Microphone** con el identificador de escenario **`Live Mic`** y traducción configurada de **Español a Inglés** (`es → en`).
+- Hacé clic en **"Start Streaming & Subtitles"** y hablá en español: verás la transcripción original y la traducción al inglés en tiempo real token por token.
+
+#### B. 🖥️ Audio de Pestaña de Navegador (Charlas de YouTube en Vivo)
+- ¿Querés probar con una charla real de Nerdearla en YouTube sin descargar archivos?
+- Seleccioná **"Browser Tab Audio (YouTube & Talks)"** en la consola.
+- Abrí cualquier video de [YouTube Nerdearla](https://youtube.com/nerdearla) en otra pestaña (por ejemplo, una charla en inglés o en español).
+- Hacé clic en **"Start Streaming"**, elegí la pestaña de YouTube y tildá **"Compartir audio de la pestaña"**.
+- Al reproducir el video, el audio digital se transmite en directo a Gemini Live para subtitulado y traducción simultánea.
+
+#### C. 📁 Muestras de Charlas Reales de Nerdearla (Español e Inglés)
+- Seleccioná **"Built-in Nerdearla Talk Samples"**.
+- Elegí entre:
+  * 🇦🇷 **Charla Nerdearla en Español** (`nerdearla-talk-spanish.wav`, 25s): autoconfigura traducción a inglés en el escenario `stage-spanish`.
+  * 🇺🇸 **Keynote Nerdearla en Inglés** (`nerdearla-talk-english.wav`, 17s): autoconfigura traducción a español en el escenario `stage-english`.
+- Hacé clic en **"Start Streaming"** para reproducir.
+
+#### D. 🚀 Demo Simultánea Multi-Escenario (Multi-File Real-Time Demo)
+- Seleccioná **"Upload Audio Files"**.
+- Podés arrastrar múltiples archivos de audio (`.wav`, `.mp3`, `.m4a`) o hacer clic en **"⚡ Quick Demo: Preload 2 Simultaneous Stages"**.
+- Hacé clic en **"🚀 Stream All Files in Parallel (Multi-Stage Live Demo)"**.
+- El sistema procesará ambos escenarios en paralelo:
+  * Escenario 1 (`stage-spanish`): Transcripción en español + traducción simultánea al inglés.
+  * Escenario 2 (`stage-english`): Transcripción en inglés + traducción simultánea al español.
+- Desde la **Vista de Audiencia** o el **Monitor de Producción** podrás monitorear ambos escenarios en simultáneo.
 
 ---
 

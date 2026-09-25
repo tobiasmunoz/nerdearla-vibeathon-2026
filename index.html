@@ -399,6 +399,107 @@
             font-size: 11px;
             text-transform: uppercase;
         }
+
+        /* Multi-File Upload & Stage Management */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            background: rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(255,215,0,0.05);
+        }
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        .file-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .file-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        .file-item-config {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .file-item-config input, .file-item-config select {
+            padding: 6px 10px;
+            font-size: 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            width: auto;
+        }
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background: #21262d;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            transition: width 0.1s linear;
+        }
+        .badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-ready { background: #30363d; color: #c9d1d9; }
+        .badge-streaming { background: #238636; color: #fff; animation: pulse 1.5s infinite; }
+        .badge-done { background: #1f6feb; color: #fff; }
+        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+        .stage-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .stage-tab-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .stage-tab-btn.active {
+            background: var(--accent);
+            color: #000;
+            font-weight: 600;
+            border-color: var(--accent);
+        }
     </style>
 </head>
 <body>
@@ -431,19 +532,20 @@
                 <div class="row">
                     <div class="field">
                         <label for="session-id">Stage / Session ID</label>
-                        <input type="text" id="session-id" value="stage-1" placeholder="e.g. stage-1, stage-2, keynote">
+                        <input type="text" id="session-id" value="Live Mic" placeholder="e.g. Live Mic, stage-1, keynote">
                     </div>
                     <div class="field">
                         <label for="audio-source">Audio Input Source</label>
                         <select id="audio-source" onchange="toggleAudioSourceUI()">
                             <option value="mic">🎙️ Live Microphone</option>
-                            <option value="sample">📁 Sample Talk Audio (Built-in Test)</option>
-                            <option value="upload">📤 Upload Audio File (.wav, .mp3)</option>
+                            <option value="tab">🖥️ Browser Tab Audio (YouTube & Talks)</option>
+                            <option value="sample">📁 Built-in Nerdearla Talk Samples (2 Stages)</option>
+                            <option value="upload">📤 Upload Audio Files (.wav, .mp3 — Multi-Stage Demo)</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Mic device picker -->
+                <!-- 1. Mic device picker -->
                 <div class="field" id="mic-picker-row" style="margin-bottom: 14px;">
                     <label for="mic-select">Select Microphone</label>
                     <select id="mic-select">
@@ -451,15 +553,54 @@
                     </select>
                 </div>
 
-                <!-- File upload picker (hidden by default) -->
-                <div class="field" id="file-picker-row" style="display:none; margin-bottom: 14px;">
-                    <label for="audio-file-input">Choose Audio File</label>
-                    <input type="file" id="audio-file-input" accept="audio/*">
+                <!-- 2. Browser Tab / YouTube Audio Info & Helper -->
+                <div id="tab-picker-row" style="display:none; margin-bottom: 14px;">
+                    <div class="integration-box" style="margin-top:0;">
+                        🎥 <strong>Real-Time YouTube & Web Video Audio Capture:</strong><br>
+                        1. Open any YouTube talk in another browser tab (e.g. <a href="https://www.youtube.com/@nerdearla/videos" target="_blank">Nerdearla YouTube Channel ↗</a>).<br>
+                        2. Click <strong>▶ Start Streaming & Subtitles</strong> below.<br>
+                        3. In the browser popup, select <strong>Chrome Tab</strong>, choose your video tab, and ensure <strong>"Also share tab audio"</strong> is checked.<br>
+                        4. Play the talk: Gemini Live will capture the speaker's audio directly and transcribe & translate in real time!
+                    </div>
                 </div>
 
-                <!-- Sample Audio info (hidden by default) -->
-                <div class="integration-box" id="sample-info-box" style="display:none; margin-bottom: 14px;">
-                    💡 <strong>Test Sample Talk Loaded:</strong> <code>samples/sample-talk-test.wav</code>. Click "Start Streaming" to feed this audio directly to the Gemini Live API without needing a microphone.
+                <!-- 3. Built-in Sample Talks picker -->
+                <div class="field" id="sample-picker-row" style="display:none; margin-bottom: 14px;">
+                    <label for="sample-talk-select">Select Preloaded Nerdearla Talk Sample</label>
+                    <select id="sample-talk-select" onchange="onSampleTalkSelected()">
+                        <option value="/samples/nerdearla-talk-spanish.wav" data-src="es" data-tgt="en" data-stage="stage-spanish">
+                            🇦🇷 Nerdearla Spanish Talk (25s) — Auto: Spanish → English (Stage: stage-spanish)
+                        </option>
+                        <option value="/samples/nerdearla-talk-english.wav" data-src="en" data-tgt="es" data-stage="stage-english">
+                            🇺🇸 Nerdearla English Keynote (17s) — Auto: English → Spanish (Stage: stage-english)
+                        </option>
+                        <option value="/samples/sample-talk-test.wav" data-src="es" data-tgt="en" data-stage="stage-1">
+                            🧪 Quick Test Tone Audio (5s) (Stage: stage-1)
+                        </option>
+                    </select>
+                    <div class="integration-box" style="margin-top: 8px;">
+                        💡 <strong>Built-in talk sample loaded:</strong> Click "Start Streaming" to feed this real audio recording directly into Gemini Live without needing a microphone.
+                    </div>
+                </div>
+
+                <!-- 4. Multiple Audio Files Upload Picker & Multi-Stage Runner -->
+                <div id="file-picker-row" style="display:none; margin-bottom: 14px;">
+                    <div class="drop-zone" onclick="document.getElementById('audio-file-input').click()">
+                        <input type="file" id="audio-file-input" multiple accept="audio/*" style="display:none;" onchange="onAudioFilesSelected(event)">
+                        <div>📁 <strong>Click or Drag & Drop audio files here (.wav, .mp3, .m4a)</strong></div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Upload multiple files to test simultaneous real-time multi-stage streaming</div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" type="button" onclick="loadPredefinedMultiStageDemo()" style="padding: 8px 14px; font-size: 12px;">
+                            ⚡ Quick Demo: Preload 2 Simultaneous Stages (Spanish & English Talks)
+                        </button>
+                        <button class="btn btn-secondary" type="button" id="btn-stream-all-parallel" onclick="startMultiStageDemo()" style="padding: 8px 14px; font-size: 12px; display: none; background: rgba(255,215,0,0.15); border-color: var(--accent); color: var(--accent); font-weight: 600;">
+                            🚀 Stream All Files in Parallel (Multi-Stage Live Demo)
+                        </button>
+                    </div>
+
+                    <div class="file-list" id="uploaded-files-list"></div>
                 </div>
 
                 <!-- Languages row -->
@@ -467,8 +608,8 @@
                     <div class="field">
                         <label for="source-lang">Speaker Language</label>
                         <select id="source-lang">
-                            <option value="en">🇺🇸 English</option>
                             <option value="es" selected>🇦🇷 Español</option>
+                            <option value="en">🇺🇸 English</option>
                             <option value="pt">🇧🇷 Português</option>
                         </select>
                     </div>
@@ -476,8 +617,8 @@
                     <div class="field">
                         <label for="target-lang">Translate Subtitles To</label>
                         <select id="target-lang">
-                            <option value="es" selected>🇦🇷 Español</option>
-                            <option value="en">🇺🇸 English</option>
+                            <option value="en" selected>🇺🇸 English</option>
+                            <option value="es">🇦🇷 Español</option>
                             <option value="pt">🇧🇷 Português</option>
                         </select>
                     </div>
@@ -513,6 +654,9 @@
                     </div>
                 </div>
 
+                <!-- Stage switcher tabs for multi-stage demo -->
+                <div class="stage-tabs" id="stage-tabs-container" style="display:none;"></div>
+
                 <div class="transcript-log" id="transcript-log">
                     <div class="transcript-placeholder" id="transcript-placeholder">
                         Start streaming or play test audio to see live Spanish & English transcription here.<br>
@@ -533,9 +677,12 @@
         <section id="audience-view">
             <div class="panel-card" style="padding: 16px 20px;">
                 <div class="audience-controls">
-                    <div class="field" style="max-width: 250px;">
+                    <div class="field" style="max-width: 280px;">
                         <label for="audience-stage-select">Select Stage</label>
                         <select id="audience-stage-select" onchange="connectAudienceStream()">
+                            <option value="Live Mic">🎙️ Live Mic</option>
+                            <option value="stage-spanish">🇪🇸 Stage Spanish (Keynote)</option>
+                            <option value="stage-english">🇺🇸 Stage English (Workshop)</option>
                             <option value="stage-1">Stage 1 (Main Hall)</option>
                             <option value="stage-2">Stage 2 (Workshop)</option>
                             <option value="keynote">Keynote Stage</option>
@@ -719,12 +866,358 @@
         // ============================================================
         // 3. AUDIO SOURCE TOGGLE & MICROPHONE LOADING
         // ============================================================
+        // Multi-file and multi-stage demo state
+        let uploadedFiles = [];
+        let multiStageWorkers = [];
+        let activeMultiStageTab = null;
+        const stageTranscripts = {}; // stageId -> { segments: [], interim: '', trans: '', card: null }
+
+        // ============================================================
+        // 3. AUDIO SOURCE TOGGLE & MICROPHONE LOADING
+        // ============================================================
         window.toggleAudioSourceUI = function() {
             const src = document.getElementById('audio-source').value;
+            const sessionInput = document.getElementById('session-id');
+
             document.getElementById('mic-picker-row').style.display = src === 'mic' ? 'block' : 'none';
+            document.getElementById('tab-picker-row').style.display = src === 'tab' ? 'block' : 'none';
+            document.getElementById('sample-picker-row').style.display = src === 'sample' ? 'block' : 'none';
             document.getElementById('file-picker-row').style.display = src === 'upload' ? 'block' : 'none';
-            document.getElementById('sample-info-box').style.display = src === 'sample' ? 'block' : 'none';
+
+            if (src === 'mic') {
+                sessionInput.value = 'Live Mic';
+            } else if (src === 'tab') {
+                sessionInput.value = 'YouTube Live';
+            } else if (src === 'sample') {
+                onSampleTalkSelected();
+            } else if (src === 'upload') {
+                sessionInput.value = (uploadedFiles.length > 0 && uploadedFiles[0].stageId) ? uploadedFiles[0].stageId : 'stage-1';
+            }
         };
+
+        window.onSampleTalkSelected = function() {
+            const sel = document.getElementById('sample-talk-select');
+            if (!sel) return;
+            const opt = sel.options[sel.selectedIndex];
+            const srcLang = opt.getAttribute('data-src') || 'es';
+            const tgtLang = opt.getAttribute('data-tgt') || 'en';
+            const stage = opt.getAttribute('data-stage') || 'stage-1';
+
+            document.getElementById('source-lang').value = srcLang;
+            document.getElementById('target-lang').value = tgtLang;
+            document.getElementById('session-id').value = stage;
+        };
+
+        // Multi-File Upload & Manager
+        window.onAudioFilesSelected = function(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+            for (let i = 0; i < files.length; i++) {
+                const f = files[i];
+                const id = 'file-' + Date.now() + '-' + i;
+                const idx = uploadedFiles.length + 1;
+                const defaultStage = 'stage-' + idx;
+                const isEven = (uploadedFiles.length % 2 === 1);
+                uploadedFiles.push({
+                    id: id,
+                    file: f,
+                    name: f.name,
+                    size: (f.size / (1024 * 1024)).toFixed(2) + ' MB',
+                    stageId: defaultStage,
+                    sourceLang: isEven ? 'en' : 'es',
+                    targetLang: isEven ? 'es' : 'en',
+                    status: 'Ready',
+                    progress: 0
+                });
+            }
+            renderUploadedFilesList();
+        };
+
+        window.loadPredefinedMultiStageDemo = function() {
+            uploadedFiles = [
+                {
+                    id: 'demo-es',
+                    name: 'nerdearla-talk-spanish.wav (Keynote)',
+                    url: '/samples/nerdearla-talk-spanish.wav',
+                    size: '25s (Audio)',
+                    stageId: 'stage-spanish',
+                    sourceLang: 'es',
+                    targetLang: 'en',
+                    status: 'Ready',
+                    progress: 0
+                },
+                {
+                    id: 'demo-en',
+                    name: 'nerdearla-talk-english.wav (Workshop)',
+                    url: '/samples/nerdearla-talk-english.wav',
+                    size: '17s (Audio)',
+                    stageId: 'stage-english',
+                    sourceLang: 'en',
+                    targetLang: 'es',
+                    status: 'Ready',
+                    progress: 0
+                }
+            ];
+            renderUploadedFilesList();
+            addStatusCard("✓ Loaded 2 Nerdearla talk samples for simultaneous multi-stage demo. Click 'Stream All Files in Parallel'!");
+        };
+
+        window.updateFileStage = function(id, val) {
+            const item = uploadedFiles.find(f => f.id === id);
+            if (item) item.stageId = val.trim() || 'stage-1';
+        };
+
+        window.updateFileLang = function(id, type, val) {
+            const item = uploadedFiles.find(f => f.id === id);
+            if (item) {
+                if (type === 'source') item.sourceLang = val;
+                else item.targetLang = val;
+            }
+        };
+
+        window.removeUploadedFile = function(id) {
+            uploadedFiles = uploadedFiles.filter(f => f.id !== id);
+            renderUploadedFilesList();
+        };
+
+        function renderUploadedFilesList() {
+            const listEl = document.getElementById('uploaded-files-list');
+            const streamAllBtn = document.getElementById('btn-stream-all-parallel');
+            if (!listEl) return;
+            listEl.innerHTML = '';
+
+            if (uploadedFiles.length === 0) {
+                if (streamAllBtn) streamAllBtn.style.display = 'none';
+                return;
+            }
+
+            if (streamAllBtn) streamAllBtn.style.display = 'inline-flex';
+
+            uploadedFiles.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'file-item';
+                card.id = 'card-' + item.id;
+                card.innerHTML = `
+                    <div class="file-item-header">
+                        <div><strong>🎵 ${escapeHtml(item.name)}</strong> <span style="color:var(--text-muted); font-size:11px;">(${item.size})</span></div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <span class="badge ${item.status === 'Streaming' ? 'badge-streaming' : (item.status === 'Done' ? 'badge-done' : 'badge-ready')}" id="badge-${item.id}">${item.status}</span>
+                            <button type="button" onclick="removeUploadedFile('${item.id}')" style="background:none; border:none; color:var(--error); cursor:pointer; font-size:14px;" title="Remove">✕</button>
+                        </div>
+                    </div>
+                    <div class="file-item-config">
+                        <label style="font-size:11px; color:var(--text-muted);">Stage ID:
+                            <input type="text" value="${escapeHtml(item.stageId)}" style="width:110px;" onchange="updateFileStage('${item.id}', this.value)">
+                        </label>
+                        <label style="font-size:11px; color:var(--text-muted);">From:
+                            <select onchange="updateFileLang('${item.id}', 'source', this.value)">
+                                <option value="es" ${item.sourceLang === 'es' ? 'selected' : ''}>🇦🇷 Español</option>
+                                <option value="en" ${item.sourceLang === 'en' ? 'selected' : ''}>🇺🇸 English</option>
+                                <option value="pt" ${item.sourceLang === 'pt' ? 'selected' : ''}>🇧🇷 Português</option>
+                            </select>
+                        </label>
+                        <label style="font-size:11px; color:var(--text-muted);">To:
+                            <select onchange="updateFileLang('${item.id}', 'target', this.value)">
+                                <option value="en" ${item.targetLang === 'en' ? 'selected' : ''}>🇺🇸 English</option>
+                                <option value="es" ${item.targetLang === 'es' ? 'selected' : ''}>🇦🇷 Español</option>
+                                <option value="pt" ${item.targetLang === 'pt' ? 'selected' : ''}>🇧🇷 Português</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="prog-${item.id}" style="width: ${item.progress || 0}%;"></div>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // Parallel Multi-Stage Real-Time Execution
+        window.startMultiStageDemo = async function() {
+            if (uploadedFiles.length === 0) {
+                alert('Please upload or load audio files first');
+                return;
+            }
+
+            stopSession();
+            setStatus('connecting', 'Starting ' + uploadedFiles.length + ' simultaneous stage sessions...');
+            setButtons(false);
+            clearTranscript();
+
+            audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            isRunning = true;
+
+            const tabsContainer = document.getElementById('stage-tabs-container');
+            tabsContainer.style.display = 'flex';
+            tabsContainer.innerHTML = '';
+
+            uploadedFiles.forEach((item, idx) => {
+                stageTranscripts[item.stageId] = {
+                    segments: [],
+                    interim: '',
+                    trans: '',
+                    card: null
+                };
+
+                const tabBtn = document.createElement('button');
+                tabBtn.className = 'stage-tab-btn' + (idx === 0 ? ' active' : '');
+                tabBtn.id = 'tab-btn-' + item.stageId;
+                tabBtn.innerHTML = `<strong>${escapeHtml(item.stageId)}</strong> (${item.sourceLang.toUpperCase()} → ${item.targetLang.toUpperCase()})`;
+                tabBtn.onclick = () => switchStageTab(item.stageId);
+                tabsContainer.appendChild(tabBtn);
+            });
+
+            activeMultiStageTab = uploadedFiles[0].stageId;
+            initMultiStageLogView(activeMultiStageTab);
+
+            multiStageWorkers = [];
+            let finishedCount = 0;
+
+            uploadedFiles.forEach(async (item) => {
+                const badge = document.getElementById('badge-' + item.id);
+                if (badge) { badge.className = 'badge badge-streaming'; badge.textContent = 'Streaming'; }
+
+                try {
+                    let arrayBuf;
+                    if (item.url) {
+                        const r = await fetch(item.url);
+                        arrayBuf = await r.arrayBuffer();
+                    } else if (item.file) {
+                        arrayBuf = await item.file.arrayBuffer();
+                    }
+
+                    const { pcm16Data } = await decodeAudioBufferToPCM16(arrayBuf, audioContext);
+
+                    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const audioWsUrl = wsProto + '//' + location.host + '/ws/audio/' + encodeURIComponent(item.stageId);
+                    const streamWsUrl = wsProto + '//' + location.host + '/ws/stream/' + encodeURIComponent(item.stageId);
+
+                    const wsAudio = new WebSocket(audioWsUrl);
+                    wsAudio.binaryType = 'arraybuffer';
+
+                    const wsStream = new WebSocket(streamWsUrl);
+
+                    const worker = {
+                        item: item,
+                        wsAudio: wsAudio,
+                        wsStream: wsStream,
+                        timer: null,
+                        stop: function() {
+                            if (this.timer) { clearInterval(this.timer); this.timer = null; }
+                            if (this.wsAudio) { this.wsAudio.close(); this.wsAudio = null; }
+                            if (this.wsStream) { this.wsStream.close(); this.wsStream = null; }
+                        }
+                    };
+                    multiStageWorkers.push(worker);
+
+                    wsStream.onmessage = (e) => {
+                        try {
+                            const msg = JSON.parse(e.data);
+                            handleMultiStageSubtitle(item.stageId, msg);
+                        } catch(err){}
+                    };
+
+                    wsAudio.onopen = () => {
+                        wsAudio.send(JSON.stringify({ source: item.sourceLang, target: item.targetLang }));
+
+                        const chunkSize = 1024;
+                        let offset = 0;
+                        worker.timer = setInterval(() => {
+                            if (!isRunning || offset >= pcm16Data.length) {
+                                clearInterval(worker.timer);
+                                worker.timer = null;
+                                const b = document.getElementById('badge-' + item.id);
+                                if (b) { b.className = 'badge badge-done'; b.textContent = 'Done'; }
+                                finishedCount++;
+                                if (finishedCount >= uploadedFiles.length) {
+                                    setStatus('connected', 'All ' + uploadedFiles.length + ' simultaneous stages completed!');
+                                }
+                                return;
+                            }
+                            const chunk = pcm16Data.subarray(offset, offset + chunkSize);
+                            if (wsAudio.readyState === WebSocket.OPEN) {
+                                wsAudio.send(chunk.buffer);
+                            }
+                            offset += chunkSize;
+                            const pct = Math.min(100, Math.round((offset / pcm16Data.length) * 100));
+                            const progEl = document.getElementById('prog-' + item.id);
+                            if (progEl) progEl.style.width = pct + '%';
+                        }, 64);
+                    };
+
+                    wsAudio.onerror = () => {
+                        const b = document.getElementById('badge-' + item.id);
+                        if (b) { b.className = 'badge'; b.style.background = 'var(--error)'; b.textContent = 'Error'; }
+                    };
+
+                } catch (err) {
+                    console.error('Multi-stage error on ' + item.stageId, err);
+                }
+            });
+
+            setStatus('connected', 'Simultaneously streaming ' + uploadedFiles.length + ' live stages with Gemini Live!');
+        };
+
+        function switchStageTab(stageId) {
+            activeMultiStageTab = stageId;
+            document.querySelectorAll('.stage-tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.id === 'tab-btn-' + stageId);
+            });
+            initMultiStageLogView(stageId);
+        }
+
+        function initMultiStageLogView(stageId) {
+            const log = document.getElementById('transcript-log');
+            log.innerHTML = '';
+            const data = stageTranscripts[stageId];
+            if (!data) return;
+
+            const card = document.createElement('div');
+            card.className = 'turn-card active';
+            card.innerHTML = `
+                <div style="font-size: 11px; color: var(--accent); margin-bottom: 4px; font-weight: 600;">STAGE: ${escapeHtml(stageId)}</div>
+                <div class="turn-original">${escapeHtml(data.segments.join(' ') + (data.interim ? ' ' + data.interim : ''))}</div>
+                <div class="turn-translation">${escapeHtml(data.trans)}</div>
+            `;
+            log.appendChild(card);
+            data.card = card;
+        }
+
+        function handleMultiStageSubtitle(stageId, msg) {
+            const data = stageTranscripts[stageId];
+            if (!data) return;
+
+            if (msg.type === 'transcription_interim') {
+                data.interim = msg.text.trim();
+            } else if (msg.type === 'transcription') {
+                const clean = msg.text.trim();
+                if (clean && (data.segments.length === 0 || data.segments[data.segments.length - 1] !== clean)) {
+                    data.segments.push(clean);
+                }
+                data.interim = '';
+            } else if (msg.type === 'translation') {
+                data.trans += msg.text;
+            }
+
+            if (activeMultiStageTab === stageId && data.card) {
+                const origEl = data.card.querySelector('.turn-original');
+                const transEl = data.card.querySelector('.turn-translation');
+                if (origEl) {
+                    let full = data.segments.join(' ');
+                    if (data.interim) full = full ? (full + ' ' + data.interim) : data.interim;
+                    origEl.textContent = full;
+                    origEl.style.opacity = data.interim ? '0.75' : '1';
+                }
+                if (transEl) {
+                    transEl.textContent = data.trans;
+                }
+                autoScroll();
+            }
+        }
 
         (async function loadMicrophones() {
             try {
@@ -761,7 +1254,7 @@
         };
 
         // ============================================================
-        // 4. STREAMING ENGINE (MIC OR SAMPLE FILE)
+        // 4. STREAMING ENGINE (MIC, TAB, BUILT-IN SAMPLE OR UPLOAD)
         // ============================================================
         window.startSession = async function() {
             const sessionId = document.getElementById('session-id').value.trim();
@@ -772,27 +1265,34 @@
             if (sourceLang === targetLang) { alert('Source and target languages must be different'); return; }
 
             const inputType = document.getElementById('audio-source').value;
+
+            // If user has uploaded multiple files, offer simultaneous multi-stage demo!
+            if (inputType === 'upload' && uploadedFiles.length > 1) {
+                startMultiStageDemo();
+                return;
+            }
+
             setStatus('connecting', 'Connecting to Gemini Live...');
             setButtons(false);
             clearTranscript();
+            document.getElementById('stage-tabs-container').style.display = 'none';
 
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
 
                 // Establish Audio Input WebSocket to Go server
                 const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = wsProto + '//' + location.host + '/ws/audio/' + sessionId;
+                const wsUrl = wsProto + '//' + location.host + '/ws/audio/' + encodeURIComponent(sessionId);
                 websocket = new WebSocket(wsUrl);
                 websocket.binaryType = 'arraybuffer';
 
                 websocket.onopen = function() {
-                    // Send language configuration handshake
                     websocket.send(JSON.stringify({ source: sourceLang, target: targetLang }));
                     setStatus('connected', 'Live Streaming (' + sourceLang.toUpperCase() + ' → ' + targetLang.toUpperCase() + ')');
                     isRunning = true;
 
                     // Update header & OBS link
-                    const obsUrl = location.origin + '?overlay=true&session=' + sessionId;
+                    const obsUrl = location.origin + '?overlay=true&session=' + encodeURIComponent(sessionId);
                     document.getElementById('obs-url').href = obsUrl;
                     document.getElementById('obs-url').textContent = obsUrl;
                     document.getElementById('obs-link').style.display = 'block';
@@ -800,16 +1300,27 @@
                     // Start Audio Input based on mode
                     if (inputType === 'mic') {
                         startMicCapture();
+                    } else if (inputType === 'tab') {
+                        startTabAudioCapture();
                     } else if (inputType === 'sample') {
-                        playAudioUrl('/samples/sample-talk-test.wav');
+                        const sampleUrl = document.getElementById('sample-talk-select').value;
+                        playAudioUrl(sampleUrl);
                     } else if (inputType === 'upload') {
-                        const fileInput = document.getElementById('audio-file-input');
-                        if (!fileInput.files || fileInput.files.length === 0) {
-                            alert('Please select an audio file first');
-                            stopSession();
-                            return;
+                        if (uploadedFiles.length > 0) {
+                            if (uploadedFiles[0].url) {
+                                playAudioUrl(uploadedFiles[0].url);
+                            } else if (uploadedFiles[0].file) {
+                                playAudioFile(uploadedFiles[0].file);
+                            }
+                        } else {
+                            const fileInput = document.getElementById('audio-file-input');
+                            if (!fileInput.files || fileInput.files.length === 0) {
+                                alert('Please select an audio file first');
+                                stopSession();
+                                return;
+                            }
+                            playAudioFile(fileInput.files[0]);
                         }
-                        playAudioFile(fileInput.files[0]);
                     }
                 };
 
@@ -856,7 +1367,7 @@
                 }
 
                 // Output WebSocket to display live subtitles
-                const streamUrl = wsProto + '//' + location.host + '/ws/stream/' + sessionId;
+                const streamUrl = wsProto + '//' + location.host + '/ws/stream/' + encodeURIComponent(sessionId);
                 connectOutputWs(streamUrl, {
                     onTranscriptionInterim: function(text) {
                         if (transcribeDone || translateDone) {
@@ -905,20 +1416,9 @@
             }
         };
 
-        // Microphone Capture via AudioWorklet (1024 frames = 64ms chunk, matching Gemini Live window)
-        async function startMicCapture() {
-            const deviceId = document.getElementById('mic-select').value;
-            mediaStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    deviceId: deviceId ? { exact: deviceId } : undefined,
-                    channelCount: 1,
-                    sampleRate: { ideal: 16000 },
-                    echoCancellation: true,
-                    noiseSuppression: true
-                }
-            });
-
-            const source = audioContext.createMediaStreamSource(mediaStream);
+        // Shared AudioWorklet setup
+        async function initAudioWorklet() {
+            if (workletNode) return;
             const processorCode = [
                 'class PCM16Processor extends AudioWorkletProcessor {',
                 '  constructor() {',
@@ -953,9 +1453,84 @@
                 if (!isRunning || !websocket || websocket.readyState !== WebSocket.OPEN) return;
                 websocket.send(e.data);
             };
+        }
 
+        // Live Microphone Capture
+        async function startMicCapture() {
+            const deviceId = document.getElementById('mic-select').value;
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    channelCount: 1,
+                    sampleRate: { ideal: 16000 },
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
+            });
+
+            const source = audioContext.createMediaStreamSource(mediaStream);
+            await initAudioWorklet();
             source.connect(workletNode);
             workletNode.connect(audioContext.destination);
+        }
+
+        // Browser Tab Audio Capture (YouTube & Web Videos)
+        async function startTabAudioCapture() {
+            try {
+                const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true,
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                    }
+                });
+
+                const audioTracks = displayStream.getAudioTracks();
+                if (!audioTracks || audioTracks.length === 0) {
+                    displayStream.getTracks().forEach(t => t.stop());
+                    throw new Error("No tab audio detected! When sharing your screen/tab, please select 'Chrome Tab' and ensure 'Also share tab audio' is enabled.");
+                }
+
+                // Stop video track as it is not needed
+                displayStream.getVideoTracks().forEach(t => t.stop());
+                mediaStream = new MediaStream(audioTracks);
+
+                audioTracks[0].onended = function() {
+                    if (isRunning) {
+                        addStatusCard("Tab audio sharing ended.");
+                        stopSession();
+                    }
+                };
+
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                await initAudioWorklet();
+                source.connect(workletNode);
+                workletNode.connect(audioContext.destination);
+
+            } catch (err) {
+                throw new Error(err.message || 'Failed to capture browser tab audio');
+            }
+        }
+
+        // Decode audio buffer to 16kHz mono Int16Array
+        async function decodeAudioBufferToPCM16(arrayBuffer, ctx) {
+            const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+            const rawChannel = audioBuffer.getChannelData(0);
+            const originalRate = audioBuffer.sampleRate;
+            const targetRate = 16000;
+
+            const resampledLength = Math.round(rawChannel.length * targetRate / originalRate);
+            const pcm16Data = new Int16Array(resampledLength);
+            for (let i = 0; i < resampledLength; i++) {
+                const origIndex = Math.min(Math.floor(i * originalRate / targetRate), rawChannel.length - 1);
+                const s = Math.max(-1, Math.min(1, rawChannel[origIndex]));
+                pcm16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            return {
+                pcm16Data: pcm16Data,
+                duration: Math.round(audioBuffer.duration)
+            };
         }
 
         // Play audio from file or URL and stream 16kHz PCM chunks
@@ -972,21 +1547,8 @@
 
         async function decodeAndStreamBuffer(arrayBuffer) {
             try {
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                const rawChannel = audioBuffer.getChannelData(0);
-                const originalRate = audioBuffer.sampleRate;
-                const targetRate = 16000;
+                const { pcm16Data } = await decodeAudioBufferToPCM16(arrayBuffer, audioContext);
 
-                // Resample to 16kHz
-                const resampledLength = Math.round(rawChannel.length * targetRate / originalRate);
-                const pcm16Data = new Int16Array(resampledLength);
-                for (let i = 0; i < resampledLength; i++) {
-                    const origIndex = Math.min(Math.floor(i * originalRate / targetRate), rawChannel.length - 1);
-                    const s = Math.max(-1, Math.min(1, rawChannel[origIndex]));
-                    pcm16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-                }
-
-                // Stream in 1024-sample chunks (64ms per chunk, matching Gemini Live window)
                 const chunkSize = 1024;
                 let offset = 0;
                 isPlayingFile = true;
@@ -1016,6 +1578,10 @@
         window.stopSession = function() {
             isRunning = false;
             isPlayingFile = false;
+            if (multiStageWorkers.length > 0) {
+                multiStageWorkers.forEach(w => w.stop());
+                multiStageWorkers = [];
+            }
             if (workletNode) { workletNode.disconnect(); workletNode = null; }
             if (audioContext) { audioContext.close().catch(function(){}); audioContext = null; }
             if (mediaStream) { mediaStream.getTracks().forEach(function(t){ t.stop(); }); mediaStream = null; }
@@ -1265,6 +1831,20 @@
                 const tbody = document.getElementById('monitor-stages-body');
                 tbody.innerHTML = '';
 
+                // Dynamically sync Audience View stage dropdown with active sessions
+                const audSelect = document.getElementById('audience-stage-select');
+                if (audSelect) {
+                    const existing = Array.from(audSelect.options).map(o => o.value);
+                    keys.forEach(k => {
+                        if (!existing.includes(k)) {
+                            const opt = document.createElement('option');
+                            opt.value = k;
+                            opt.textContent = '● ' + k + ' (Live)';
+                            audSelect.appendChild(opt);
+                        }
+                    });
+                }
+
                 if (keys.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No active broadcast sessions.</td></tr>';
                 } else {
@@ -1276,7 +1856,7 @@
                             '<td><strong>' + stageId + '</strong></td>' +
                             '<td>' + count + ' viewers</td>' +
                             '<td><span style="color: var(--success);">● Active</span></td>' +
-                            '<td><a href="/?overlay=true&session=' + stageId + '" target="_blank" style="color: var(--accent);">Open Overlay</a></td>';
+                            '<td><a href="/?overlay=true&session=' + encodeURIComponent(stageId) + '" target="_blank" style="color: var(--accent);">Open Overlay</a></td>';
                         tbody.appendChild(tr);
                     });
                 }
@@ -1284,9 +1864,7 @@
             } catch(e) {}
         }
         setInterval(function() {
-            if (document.getElementById('monitor-view').style.display === 'block') {
-                refreshMonitorStats();
-            }
+            refreshMonitorStats();
         }, 3000);
 
         // ============================================================

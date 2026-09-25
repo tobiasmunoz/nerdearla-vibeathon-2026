@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,6 +51,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/", s.handleRoot)
 	mux.HandleFunc("/api/health", s.handleHealth)
 	mux.HandleFunc("/api/sessions", s.handleSessions)
+	mux.HandleFunc("/api/samples", s.handleListSamples)
 	mux.HandleFunc("/stream/", s.handleSSE)
 	mux.HandleFunc("/ws/stream/", s.handleWSStream)
 	mux.HandleFunc("/ws/audio/", s.handleWSAudio)
@@ -86,6 +88,25 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
+func (s *Server) handleListSamples(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	files, err := os.ReadDir("samples")
+	if err != nil {
+		_ = json.NewEncoder(w).Encode([]map[string]string{})
+		return
+	}
+	var samples []map[string]string
+	for _, f := range files {
+		if !f.IsDir() && strings.HasSuffix(strings.ToLower(f.Name()), ".wav") {
+			samples = append(samples, map[string]string{
+				"filename": f.Name(),
+				"url":      "/samples/" + f.Name(),
+			})
+		}
+	}
+	_ = json.NewEncoder(w).Encode(samples)
+}
+
 // handleSSE handles GET /stream/{session_id}
 func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
@@ -95,6 +116,10 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID := strings.TrimPrefix(r.URL.Path, "/stream/")
+	if decoded, err := url.PathUnescape(sessionID); err == nil && decoded != "" {
+		sessionID = decoded
+	}
+	sessionID = strings.TrimSpace(sessionID)
 	if sessionID == "" {
 		http.Error(w, "Missing session ID", http.StatusBadRequest)
 		return
@@ -142,6 +167,10 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 // handleWSStream handles WS /ws/stream/{session_id}
 func (s *Server) handleWSStream(w http.ResponseWriter, r *http.Request) {
 	sessionID := strings.TrimPrefix(r.URL.Path, "/ws/stream/")
+	if decoded, err := url.PathUnescape(sessionID); err == nil && decoded != "" {
+		sessionID = decoded
+	}
+	sessionID = strings.TrimSpace(sessionID)
 	if sessionID == "" {
 		http.Error(w, "Missing session ID", http.StatusBadRequest)
 		return
@@ -196,6 +225,10 @@ type AudioConfigMessage struct {
 // handleWSAudio handles WS /ws/audio/{session_id}
 func (s *Server) handleWSAudio(w http.ResponseWriter, r *http.Request) {
 	sessionID := strings.TrimPrefix(r.URL.Path, "/ws/audio/")
+	if decoded, err := url.PathUnescape(sessionID); err == nil && decoded != "" {
+		sessionID = decoded
+	}
+	sessionID = strings.TrimSpace(sessionID)
 	if sessionID == "" {
 		http.Error(w, "Missing session ID", http.StatusBadRequest)
 		return
