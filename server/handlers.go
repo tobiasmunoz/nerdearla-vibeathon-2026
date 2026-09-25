@@ -247,11 +247,7 @@ func (s *Server) handleWSAudio(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[%s] Audio WebSocket connected", sessionID)
 	broadcaster := broadcast.GetOrCreateBroadcaster(sessionID)
-	defer func() {
-		if broadcaster.ListenerCount() == 0 {
-			broadcast.CleanupSession(sessionID)
-		}
-	}()
+
 
 	// 1. Read configuration message
 	readCtx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
@@ -384,7 +380,14 @@ func (s *Server) runDualSession(
 		if xRes.session != nil {
 			xRes.session.Close()
 		}
-		log.Printf("[%s] Gemini connection error: transcribe err=%v, translate err=%v", sessionID, tRes.err, xRes.err)
+		errMsg := ""
+		if tRes.err != nil {
+			errMsg = fmt.Sprintf("Transcribe error: %v", tRes.err)
+		} else {
+			errMsg = fmt.Sprintf("Translate error: %v", xRes.err)
+		}
+		log.Printf("[%s] Gemini connection error: %s", sessionID, errMsg)
+		broadcaster.Broadcast("status", fmt.Sprintf("⚠️ Gemini connection error: %s. Retrying...", errMsg))
 		if ctx.Err() != nil {
 			return false
 		}
@@ -404,8 +407,8 @@ func (s *Server) runDualSession(
 	go s.translateReceiveLoop(sessCtx, cancel, translateSess, broadcaster, sessionID)
 
 	// 4. Sequential FIFO audio workers (guarantees in-order PCM delivery to Gemini)
-	transcribeAudioCh := make(chan []byte, 200)
-	translateAudioCh := make(chan []byte, 200)
+	transcribeAudioCh := make(chan []byte, 500)
+	translateAudioCh := make(chan []byte, 500)
 
 	go func() {
 		for {
@@ -471,11 +474,13 @@ func (s *Server) runDualSession(
 		select {
 		case transcribeAudioCh <- pcmData:
 		default:
+			log.Printf("[%s][transcribe] ⚠️ Buffer full, dropping audio frame", sessionID)
 		}
 
 		select {
 		case translateAudioCh <- pcmData:
 		default:
+			log.Printf("[%s][translate] ⚠️ Buffer full, dropping audio frame", sessionID)
 		}
 	}
 }

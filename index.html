@@ -812,6 +812,9 @@
                         <button class="btn btn-secondary" onclick="openAllYouTubeTabs()" style="padding: 7px 12px; font-size: 12px; color: var(--accent); border-color: var(--accent); font-weight: 600;" title="Attempts to open all 3 tabs">
                             🔗 Open All 3 Tabs ↗
                         </button>
+                        <button class="btn btn-secondary" onclick="streamAllStagesSamples()" style="padding: 7px 12px; font-size: 12px; font-weight: 600; background: rgba(56,139,253,0.15); border-color: rgba(56,139,253,0.4); color: #58a6ff;" title="Stream built-in conference talk samples on all 3 stages simultaneously">
+                            ⚡ Stream All 3 Samples
+                        </button>
                         <button class="btn btn-secondary" id="btn-master-stop" onclick="stopAllVideoStages()" style="padding: 7px 12px; font-size: 12px;">
                             ■ Stop All Stages
                         </button>
@@ -1326,8 +1329,24 @@
                     btn.textContent = '■ Stop Stream';
                     btn.className = 'btn btn-stop';
                 }
+                const sampleBtn = document.getElementById('btn-sample-' + this.id);
+                if (sampleBtn) {
+                    sampleBtn.textContent = '■ Stop';
+                    sampleBtn.className = 'btn btn-stop';
+                }
 
-                // Trigger video play
+                this.segments = [];
+                this.interim = '';
+                this.translation = '';
+                this.turns = [];
+                this.currentTurn = null;
+
+                const origEl = document.getElementById('orig-' + this.id);
+                const transEl = document.getElementById('trans-' + this.id);
+                if (origEl) origEl.textContent = 'Streaming built-in talk sample...';
+                if (transEl) transEl.textContent = 'Connecting to Gemini Live...';
+
+                // Trigger video play if iframe present
                 this.sendIframeCommand('playVideo');
 
                 try {
@@ -1354,6 +1373,10 @@
                             const msg = JSON.parse(e.data);
                             this.handleSubtitleMessage(msg);
                         } catch(err){}
+                    };
+
+                    this.wsStream.onerror = (e) => {
+                        console.error('WS Stream error on ' + this.id, e);
                     };
 
                     this.wsAudio.onopen = () => {
@@ -1396,6 +1419,7 @@
 
                     this.wsAudio.onerror = () => {
                         this.setCardStatus('Error', 'badge');
+                        if (transEl) transEl.textContent = '⚠️ WebSocket audio error';
                     };
 
                 } catch (err) {
@@ -1408,6 +1432,19 @@
                 // Stop any previous streaming first
                 this.stop();
 
+                // 1. CRITICAL: Initialize AudioContext synchronously while user gesture is active!
+                try {
+                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                } catch(e) {
+                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume().catch(()=>{});
+                }
+
+                this.hasReceivedSound = false;
+                this.startTime = Date.now();
+
                 try {
                     const displayStream = await navigator.mediaDevices.getDisplayMedia({
                         video: true,
@@ -1417,8 +1454,14 @@
                     const audioTracks = displayStream.getAudioTracks();
                     if (!audioTracks || audioTracks.length === 0) {
                         displayStream.getTracks().forEach(t => t.stop());
-                        alert("⚠️ No tab audio detected!\n\nWhen choosing a Chrome tab, make sure 'Also share tab audio' is CHECKED at the bottom of the prompt.\n\nPlease try again.");
+                        if (this.audioCtx) { this.audioCtx.close().catch(()=>{}); this.audioCtx = null; }
+                        alert("⚠️ No tab audio detected!\n\nWhen choosing a Chrome tab:\n1. Choose 'Chrome Tab'\n2. Ensure 'Also share tab audio' at the bottom-left is CHECKED!\n\nPlease try again.");
                         return;
+                    }
+
+                    // Resume AudioContext if suspended after user picker
+                    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+                        await this.audioCtx.resume();
                     }
 
                     this.displayStream = displayStream;
@@ -1444,7 +1487,7 @@
                         videoTracks[0].onended = () => { this.stop(); };
                     }
 
-                    this.setCardStatus('Live Tab', 'badge-streaming');
+                    this.setCardStatus('Connecting...', 'badge-streaming');
                     const card = document.getElementById('card-' + this.id);
                     if (card) card.classList.add('active-streaming');
 
@@ -1457,16 +1500,13 @@
                     this.segments = [];
                     this.interim = '';
                     this.translation = '';
+                    this.turns = [];
+                    this.currentTurn = null;
 
                     const origEl = document.getElementById('orig-' + this.id);
                     const transEl = document.getElementById('trans-' + this.id);
-                    if (origEl) origEl.textContent = 'Listening to tab audio...';
+                    if (origEl) origEl.textContent = 'Listening to tab audio... (Ensure YouTube tab is playing)';
                     if (transEl) transEl.textContent = 'Connecting to Gemini Live...';
-
-                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    if (this.audioCtx.state === 'suspended') {
-                        await this.audioCtx.resume();
-                    }
 
                     const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
                     const audioUrl = wsProto + '//' + location.host + '/ws/audio/' + encodeURIComponent(this.id);
@@ -1483,6 +1523,16 @@
                         } catch(err){}
                     };
 
+                    this.wsStream.onerror = (e) => {
+                        console.error('WS Stream error on ' + this.id, e);
+                    };
+
+                    this.wsStream.onclose = () => {
+                        if (this.isRunning) {
+                            this.setCardStatus('Disconnected', 'badge');
+                        }
+                    };
+
                     const srcSel = document.getElementById('src-' + this.id);
                     const tgtSel = document.getElementById('tgt-' + this.id);
                     const srcLang = srcSel ? srcSel.value : this.cfg.sourceLang;
@@ -1491,6 +1541,7 @@
                     this.wsAudio.onopen = async () => {
                         this.wsAudio.send(JSON.stringify({ source: srcLang, target: tgtLang }));
                         this.isRunning = true;
+                        this.setCardStatus('Live Tab', 'badge-streaming');
 
                         try {
                             const source = this.audioCtx.createMediaStreamSource(this.tabMediaStream);
@@ -1549,7 +1600,20 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
                             this.workletNode = new AudioWorkletNode(this.audioCtx, `stage-pcm16-${this.id}`);
                             this.workletNode.port.onmessage = (e) => {
                                 if (e.data.type === 'volume') {
-                                    this.updateVuMeter(e.data.val);
+                                    const rms = e.data.val;
+                                    this.updateVuMeter(rms);
+                                    if (rms > 0.008) {
+                                        this.hasReceivedSound = true;
+                                        if (origEl && this.segments.length === 0 && !this.interim) {
+                                            if (origEl.textContent.includes('silent') || origEl.textContent.includes('paused') || origEl.textContent.startsWith('Listening')) {
+                                                origEl.textContent = '🎙️ Audio signal detected! Listening for speech...';
+                                            }
+                                        }
+                                    } else if (!this.hasReceivedSound && Date.now() - this.startTime > 3000) {
+                                        if (origEl && this.segments.length === 0 && !this.interim) {
+                                            origEl.innerHTML = '<span style="color:var(--warning); font-weight:600;">⚠️ Tab audio is silent or video is paused.</span><br><span style="font-size:10px; color:var(--text-muted);">Ensure the YouTube tab is <u>playing</u> and <u>unmuted</u>!</span>';
+                                        }
+                                    }
                                 } else if (e.data.type === 'audio') {
                                     if (this.isRunning && this.wsAudio && this.wsAudio.readyState === WebSocket.OPEN) {
                                         this.wsAudio.send(e.data.data);
@@ -1563,11 +1627,22 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
                             silentGain.connect(this.audioCtx.destination);
                         } catch(wErr) {
                             console.error('Worklet setup error on ' + this.id, wErr);
+                            if (transEl) transEl.textContent = 'Audio Worklet error: ' + wErr.message;
                         }
                     };
 
                     this.wsAudio.onerror = (e) => {
                         console.error('WS Audio error on ' + this.id, e);
+                        this.setCardStatus('Audio Err', 'badge');
+                        if (transEl && !this.translation.trim()) {
+                            transEl.textContent = '⚠️ WebSocket audio error';
+                        }
+                    };
+
+                    this.wsAudio.onclose = () => {
+                        if (this.isRunning) {
+                            this.setCardStatus('Disconnected', 'badge');
+                        }
                     };
 
                 } catch(err) {
@@ -1673,6 +1748,11 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
                     btn.textContent = '🖥️ Capture Tab Video & Audio';
                     btn.className = 'btn btn-start';
                 }
+                const sampleBtn = document.getElementById('btn-sample-' + this.id);
+                if (sampleBtn) {
+                    sampleBtn.textContent = '🎵 Sample Audio';
+                    sampleBtn.className = 'btn btn-secondary';
+                }
             }
 
             handleSubtitleMessage(msg) {
@@ -1708,7 +1788,15 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
                     this.translation += ' ';
                     this.scheduleTurnCommit(600);
                 } else if (msg.type === 'status') {
-                    // status from server
+                    const transEl = document.getElementById('trans-' + this.id);
+                    if (transEl && !this.translation.trim()) {
+                        transEl.textContent = msg.text;
+                    }
+                    if (msg.text.includes('Connected')) {
+                        this.setCardStatus('Streaming Live', 'badge-streaming');
+                    } else if (msg.text.includes('Reconnecting') || msg.text.includes('error') || msg.text.includes('Error')) {
+                        this.setCardStatus('Reconnecting', 'badge');
+                    }
                 }
 
                 const origEl = document.getElementById('orig-' + this.id);
@@ -1718,11 +1806,15 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
                 if (origEl) {
                     let full = this.segments.join(' ');
                     if (this.interim) full = full ? (full + ' ' + this.interim) : this.interim;
-                    origEl.textContent = full || 'Listening to tab audio...';
-                    origEl.style.opacity = this.interim ? '0.7' : '1';
+                    if (full) {
+                        origEl.textContent = full;
+                        origEl.style.opacity = this.interim ? '0.7' : '1';
+                    }
                 }
                 if (transEl) {
-                    transEl.textContent = this.translation.trim() || 'Translating live...';
+                    if (this.translation.trim()) {
+                        transEl.textContent = this.translation.trim();
+                    }
                 }
                 if (subBox) {
                     subBox.scrollTop = subBox.scrollHeight;
@@ -1777,6 +1869,24 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
             } else {
                 runner.captureTabAudio();
             }
+        };
+
+        window.streamStageAudioSample = function(stageId) {
+            const runner = stageRunners[stageId];
+            if (!runner) return;
+            if (runner.isRunning) {
+                runner.stop();
+            } else {
+                runner.startTalkStreaming();
+            }
+        };
+
+        window.streamAllStagesSamples = function() {
+            Object.values(stageRunners).forEach(r => {
+                if (!r.isRunning) {
+                    r.startTalkStreaming();
+                }
+            });
         };
 
         window.captureTabAudioForStage = function(stageId) {
@@ -2189,9 +2299,12 @@ registerProcessor('presenter-pcm16', PresenterPCM16Processor);
                         </div>
                     </div>
 
-                    <div style="margin-top: 6px;">
-                        <button type="button" class="btn btn-start" id="btn-stream-${cfg.id}" onclick="toggleStageStreaming('${cfg.id}')" style="width: 100%; padding: 8px; font-size: 12px; font-weight: 600;">
+                    <div style="margin-top: 6px; display: flex; gap: 6px;">
+                        <button type="button" class="btn btn-start" id="btn-stream-${cfg.id}" onclick="toggleStageStreaming('${cfg.id}')" style="flex: 1; padding: 8px 6px; font-size: 11px; font-weight: 600;">
                             🖥️ Capture Tab Video & Audio
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="btn-sample-${cfg.id}" onclick="streamStageAudioSample('${cfg.id}')" style="padding: 8px 10px; font-size: 11px; font-weight: 600;" title="Stream built-in conference audio sample for this stage">
+                            🎵 Sample Audio
                         </button>
                     </div>
 
