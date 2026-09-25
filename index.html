@@ -775,9 +775,17 @@
 
                     <!-- Right: Subtitle live ribbon -->
                     <div class="presenter-subtitles-ribbon">
-                        <div class="ribbon-header">
-                            <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Live Presenter Subtitles</span>
-                            <span id="presenter-lang-badge" style="font-size: 11px; color: var(--accent); font-weight: 700;">ES → EN</span>
+                        <div class="ribbon-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Live Presenter Subtitles</span>
+                                <span id="presenter-lang-badge" style="font-size: 11px; color: var(--accent); font-weight: 700;">ES → EN</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Export:</span>
+                                <button type="button" class="btn btn-secondary" onclick="exportPresenterTranscript('srt')" style="padding: 2px 7px; font-size: 10px; font-weight: 600;" title="Download SRT Subtitle">SRT</button>
+                                <button type="button" class="btn btn-secondary" onclick="exportPresenterTranscript('vtt')" style="padding: 2px 7px; font-size: 10px; font-weight: 600;" title="Download WebVTT Subtitle">VTT</button>
+                                <button type="button" class="btn btn-secondary" onclick="exportPresenterTranscript('txt')" style="padding: 2px 7px; font-size: 10px; font-weight: 600;" title="Download Plain Text Transcript">TXT</button>
+                            </div>
                         </div>
                         <div class="presenter-original" id="presenter-original">
                             Esperando que hables al micrófono... (Haz click en "Start Presenter Mic")
@@ -806,6 +814,9 @@
                         </button>
                         <button class="btn btn-secondary" id="btn-master-stop" onclick="stopAllVideoStages()" style="padding: 7px 12px; font-size: 12px;">
                             ■ Stop All Stages
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportAllStagesTranscript('txt')" style="padding: 7px 12px; font-size: 12px; font-weight: 600;" title="Download combined transcript for all active stages">
+                            📥 Master Export (TXT)
                         </button>
                     </div>
                 </div>
@@ -1297,6 +1308,9 @@
                 this.segments = [];
                 this.interim = '';
                 this.translation = '';
+                this.turns = [];
+                this.currentTurn = null;
+                this.turnDoneTimer = null;
             }
 
             async startTalkStreaming() {
@@ -1564,7 +1578,60 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
                 }
             }
 
+            scheduleTurnCommit(delayMs) {
+                if (this.turnDoneTimer) clearTimeout(this.turnDoneTimer);
+                this.turnDoneTimer = setTimeout(() => {
+                    this.commitTurn();
+                }, delayMs);
+            }
+
+            commitTurn() {
+                if (this.turnDoneTimer) {
+                    clearTimeout(this.turnDoneTimer);
+                    this.turnDoneTimer = null;
+                }
+                if (!this.currentTurn) return;
+
+                const orig = (this.currentTurn.origSegments || []).join(' ').trim();
+                const trans = (this.currentTurn.trans || '').trim();
+
+                if (orig || trans) {
+                    this.turns.push({
+                        start: this.currentTurn.start || Date.now(),
+                        end: Date.now(),
+                        orig: orig,
+                        trans: trans || orig
+                    });
+                }
+                this.currentTurn = null;
+            }
+
+            getExportTurns() {
+                const list = this.turns.map(t => ({ ...t }));
+                if (this.currentTurn) {
+                    const orig = (this.currentTurn.origSegments || []).join(' ').trim();
+                    const trans = (this.currentTurn.trans || '').trim();
+                    if (orig || trans) {
+                        list.push({
+                            start: this.currentTurn.start || Date.now(),
+                            end: Date.now(),
+                            orig: orig,
+                            trans: trans || orig
+                        });
+                    }
+                } else if (list.length === 0 && (this.segments.length > 0 || this.translation.trim())) {
+                    list.push({
+                        start: Date.now() - 4000,
+                        end: Date.now(),
+                        orig: this.segments.join(' ').trim(),
+                        trans: this.translation.trim() || this.segments.join(' ').trim()
+                    });
+                }
+                return list;
+            }
+
             stop() {
+                this.commitTurn();
                 this.isRunning = false;
                 if (this.streamTimer) { clearInterval(this.streamTimer); this.streamTimer = null; }
                 if (this.displayStream) {
@@ -1609,20 +1676,37 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
             }
 
             handleSubtitleMessage(msg) {
+                if (!this.currentTurn) {
+                    this.currentTurn = {
+                        start: Date.now(),
+                        origSegments: [],
+                        trans: ''
+                    };
+                }
+
                 if (msg.type === 'transcription_interim') {
                     this.interim = msg.text.trim();
                 } else if (msg.type === 'transcription') {
                     const clean = msg.text.trim();
                     if (clean && (this.segments.length === 0 || this.segments[this.segments.length - 1] !== clean)) {
                         this.segments.push(clean);
+                        if (this.currentTurn.origSegments.length === 0 || this.currentTurn.origSegments[this.currentTurn.origSegments.length - 1] !== clean) {
+                            this.currentTurn.origSegments.push(clean);
+                        }
                     }
                     this.interim = '';
                 } else if (msg.type === 'transcription_done') {
                     this.interim = '';
+                    this.scheduleTurnCommit(600);
                 } else if (msg.type === 'translation') {
                     this.translation += msg.text;
+                    this.currentTurn.trans += msg.text;
+                    if (/[.!?]\s*$/.test(msg.text)) {
+                        this.scheduleTurnCommit(1200);
+                    }
                 } else if (msg.type === 'translation_done') {
                     this.translation += ' ';
+                    this.scheduleTurnCommit(600);
                 } else if (msg.type === 'status') {
                     // status from server
                 }
@@ -1757,6 +1841,36 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
         let studioSegments = [];
         let studioInterim = '';
         let studioTranslation = '';
+        let studioPresenterTurns = [];
+        let studioPresenterCurrentTurn = null;
+        let studioPresenterDoneTimer = null;
+
+        function commitStudioPresenterTurn() {
+            if (studioPresenterDoneTimer) {
+                clearTimeout(studioPresenterDoneTimer);
+                studioPresenterDoneTimer = null;
+            }
+            if (!studioPresenterCurrentTurn) return;
+
+            const orig = (studioPresenterCurrentTurn.origSegments || []).join(' ').trim();
+            const trans = (studioPresenterCurrentTurn.trans || '').trim();
+            if (orig || trans) {
+                studioPresenterTurns.push({
+                    start: studioPresenterCurrentTurn.start || Date.now(),
+                    end: Date.now(),
+                    orig: orig,
+                    trans: trans || orig
+                });
+            }
+            studioPresenterCurrentTurn = null;
+        }
+
+        function scheduleStudioPresenterTurnCommit(delayMs) {
+            if (studioPresenterDoneTimer) clearTimeout(studioPresenterDoneTimer);
+            studioPresenterDoneTimer = setTimeout(() => {
+                commitStudioPresenterTurn();
+            }, delayMs);
+        }
 
         window.updateStudioBoost = function(val) {
             updateMicBoost(val);
@@ -1790,6 +1904,7 @@ registerProcessor('stage-pcm16-${this.id}', StagePCM16Processor);
             const vuBar = document.getElementById('presenter-vu-bar');
 
             if (studioMicRunning) {
+                commitStudioPresenterTurn();
                 studioMicRunning = false;
                 if (studioMediaStream) { studioMediaStream.getTracks().forEach(t => t.stop()); studioMediaStream = null; }
                 if (studioWorkletNode) { studioWorkletNode.disconnect(); studioWorkletNode = null; }
@@ -1924,20 +2039,43 @@ registerProcessor('presenter-pcm16', PresenterPCM16Processor);
                 studioSegments = [];
                 studioInterim = '';
                 studioTranslation = '';
+                studioPresenterTurns = [];
+                studioPresenterCurrentTurn = null;
 
                 studioStreamWs.onmessage = (e) => {
                     try {
                         const msg = JSON.parse(e.data);
+                        if (!studioPresenterCurrentTurn) {
+                            studioPresenterCurrentTurn = {
+                                start: Date.now(),
+                                origSegments: [],
+                                trans: ''
+                            };
+                        }
+
                         if (msg.type === 'transcription_interim') {
                             studioInterim = msg.text.trim();
                         } else if (msg.type === 'transcription') {
                             const clean = msg.text.trim();
                             if (clean && (studioSegments.length === 0 || studioSegments[studioSegments.length - 1] !== clean)) {
                                 studioSegments.push(clean);
+                                if (studioPresenterCurrentTurn.origSegments.length === 0 || studioPresenterCurrentTurn.origSegments[studioPresenterCurrentTurn.origSegments.length - 1] !== clean) {
+                                    studioPresenterCurrentTurn.origSegments.push(clean);
+                                }
                             }
                             studioInterim = '';
+                        } else if (msg.type === 'transcription_done') {
+                            studioInterim = '';
+                            scheduleStudioPresenterTurnCommit(600);
                         } else if (msg.type === 'translation') {
                             studioTranslation += msg.text;
+                            studioPresenterCurrentTurn.trans += msg.text;
+                            if (/[.!?]\s*$/.test(msg.text)) {
+                                scheduleStudioPresenterTurnCommit(1200);
+                            }
+                        } else if (msg.type === 'translation_done') {
+                            studioTranslation += ' ';
+                            scheduleStudioPresenterTurnCommit(600);
                         }
 
                         if (origEl) {
@@ -2060,6 +2198,15 @@ registerProcessor('presenter-pcm16', PresenterPCM16Processor);
                     <div class="stage-subtitles-box" id="sub-box-${cfg.id}">
                         <div class="stage-sub-orig" id="orig-${cfg.id}">Original speech will appear here when video plays...</div>
                         <div class="stage-sub-trans" id="trans-${cfg.id}">Translated subtitles will stream in real time...</div>
+                    </div>
+
+                    <div class="stage-export-row" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08);">
+                        <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">📥 Subtitles:</span>
+                        <div style="display: flex; gap: 4px;">
+                            <button type="button" class="btn btn-secondary" onclick="exportStageTranscript('${cfg.id}', 'srt')" style="padding: 2px 7px; font-size: 10px; font-weight: 600;" title="Download SRT Subtitle">SRT</button>
+                            <button type="button" class="btn btn-secondary" onclick="exportStageTranscript('${cfg.id}', 'vtt')" style="padding: 2px 7px; font-size: 10px; font-weight: 600;" title="Download WebVTT Subtitle">VTT</button>
+                            <button type="button" class="btn btn-secondary" onclick="exportStageTranscript('${cfg.id}', 'txt')" style="padding: 2px 7px; font-size: 10px; font-weight: 600;" title="Download Plain Text Transcript">TXT</button>
+                        </div>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -3225,51 +3372,189 @@ registerProcessor('pcm16-processor', PCM16Processor);
             userHasScrolled = !atBottom;
         });
 
-        // Export Subtitles Function
-        window.exportTranscript = function(format) {
-            if (turnsHistory.length === 0) {
+        // ============================================================
+        // SUBTITLE & TRANSCRIPT EXPORT HELPERS (SRT / VTT / TXT)
+        // ============================================================
+        window.downloadSubtitleFile = function(filename, format, turns) {
+            if (!turns || turns.length === 0) {
                 alert('No transcript items recorded yet to export.');
                 return;
             }
 
             let content = '';
-            const baseTime = turnsHistory[0].start;
+            const baseTime = turns[0].start || Date.now();
 
             function formatTime(ms, isVTT) {
-                const totalSeconds = Math.floor(ms / 1000);
+                const totalSeconds = Math.max(0, Math.floor(ms / 1000));
                 const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
                 const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
                 const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-                const millis = (ms % 1000).toString().padStart(3, '0');
+                const millis = (Math.max(0, ms) % 1000).toString().padStart(3, '0');
                 return hours + ':' + minutes + ':' + seconds + (isVTT ? '.' : ',') + millis;
             }
 
             if (format === 'srt') {
-                turnsHistory.forEach(function(item, idx) {
-                    const s = formatTime(Math.max(0, item.start - baseTime), false);
-                    const e = formatTime(Math.max(1000, item.end - baseTime), false);
-                    content += (idx + 1) + '\n' + s + ' --> ' + e + '\n' + item.trans + '\n\n';
+                turns.forEach(function(item, idx) {
+                    const sMs = Math.max(0, (item.start || baseTime) - baseTime);
+                    const eMs = Math.max(sMs + 1200, (item.end || baseTime + 1200) - baseTime);
+                    const s = formatTime(sMs, false);
+                    const e = formatTime(eMs, false);
+                    const text = (item.trans || item.orig || '').trim();
+                    content += (idx + 1) + '\n' + s + ' --> ' + e + '\n' + text + '\n\n';
                 });
             } else if (format === 'vtt') {
                 content = 'WEBVTT\n\n';
-                turnsHistory.forEach(function(item, idx) {
-                    const s = formatTime(Math.max(0, item.start - baseTime), true);
-                    const e = formatTime(Math.max(1000, item.end - baseTime), true);
-                    content += (idx + 1) + '\n' + s + ' --> ' + e + '\n' + item.trans + '\n\n';
+                turns.forEach(function(item, idx) {
+                    const sMs = Math.max(0, (item.start || baseTime) - baseTime);
+                    const eMs = Math.max(sMs + 1200, (item.end || baseTime + 1200) - baseTime);
+                    const s = formatTime(sMs, true);
+                    const e = formatTime(eMs, true);
+                    const text = (item.trans || item.orig || '').trim();
+                    content += (idx + 1) + '\n' + s + ' --> ' + e + '\n' + text + '\n\n';
                 });
-            } else {
-                turnsHistory.forEach(function(item) {
-                    content += '[' + new Date(item.start).toLocaleTimeString() + '] ' + item.trans + ' (' + item.orig + ')\n';
+            } else { // txt
+                turns.forEach(function(item) {
+                    const timeStr = item.start ? new Date(item.start).toLocaleTimeString() : new Date().toLocaleTimeString();
+                    const transText = (item.trans || '').trim();
+                    const origText = (item.orig || '').trim();
+                    content += '[' + timeStr + '] ' + (transText || origText);
+                    if (origText && transText && origText !== transText) {
+                        content += ' (Original: ' + origText + ')';
+                    }
+                    content += '\n';
                 });
             }
 
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const mime = format === 'txt' ? 'text/plain' : 'text/vtt';
+            const blob = new Blob([content], { type: mime + ';charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'nerdearla-transcript.' + format;
+            a.download = filename + '.' + format;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        };
+
+        // Export Subtitles Function (Presenter Console)
+        window.exportTranscript = function(format) {
+            if (turnsHistory.length === 0) {
+                alert('No transcript items recorded yet to export.');
+                return;
+            }
+            window.downloadSubtitleFile('nerdearla-transcript', format, turnsHistory);
+        };
+
+        // Export Subtitles for Individual Studio Video Stage
+        window.exportStageTranscript = function(stageId, format) {
+            const runner = stageRunners[stageId];
+            if (!runner) {
+                alert('Stage runner not found: ' + stageId);
+                return;
+            }
+            const turns = runner.getExportTurns();
+            if (turns.length === 0) {
+                alert('No subtitle speech recorded yet for ' + (runner.cfg.title || stageId) + '.');
+                return;
+            }
+            const filename = 'nerdearla-' + stageId + '-' + (runner.cfg.targetLang || 'subs');
+            window.downloadSubtitleFile(filename, format, turns);
+        };
+
+        // Export Subtitles for Studio Presenter Live Mic
+        window.exportPresenterTranscript = function(format) {
+            const list = studioPresenterTurns.map(t => ({ ...t }));
+            if (studioPresenterCurrentTurn) {
+                const orig = (studioPresenterCurrentTurn.origSegments || []).join(' ').trim();
+                const trans = (studioPresenterCurrentTurn.trans || '').trim();
+                if (orig || trans) {
+                    list.push({
+                        start: studioPresenterCurrentTurn.start || Date.now(),
+                        end: Date.now(),
+                        orig: orig,
+                        trans: trans || orig
+                    });
+                }
+            } else if (list.length === 0 && (studioSegments.length > 0 || studioTranslation.trim())) {
+                list.push({
+                    start: Date.now() - 4000,
+                    end: Date.now(),
+                    orig: studioSegments.join(' ').trim(),
+                    trans: studioTranslation.trim() || studioSegments.join(' ').trim()
+                });
+            }
+
+            if (list.length === 0) {
+                alert('No presenter speech recorded yet to export.');
+                return;
+            }
+
+            window.downloadSubtitleFile('nerdearla-presenter-broadcast', format, list);
+        };
+
+        // Master Export for All Active Stages (Presenter + 3 Video Stages)
+        window.exportAllStagesTranscript = function(format) {
+            let hasData = false;
+            const allReports = [];
+
+            // 1. Presenter
+            const presTurns = studioPresenterTurns.length > 0 ? studioPresenterTurns : (studioTranslation ? [{ start: Date.now() - 4000, end: Date.now(), orig: studioSegments.join(' '), trans: studioTranslation }] : []);
+            if (presTurns.length > 0) {
+                hasData = true;
+                allReports.push({ stage: 'Live Presenter Broadcast', turns: presTurns });
+            }
+
+            // 2. Video Stages
+            VIDEO_STAGES_CONFIG.forEach(cfg => {
+                const runner = stageRunners[cfg.id];
+                if (runner) {
+                    const turns = runner.getExportTurns();
+                    if (turns.length > 0) {
+                        hasData = true;
+                        allReports.push({ stage: cfg.title + ' (' + cfg.id + ')', turns: turns });
+                    }
+                }
+            });
+
+            if (!hasData) {
+                alert('No transcript items recorded across any stage yet to export.');
+                return;
+            }
+
+            if (format === 'txt') {
+                let content = '=== NERDEARLA VIBEATHON 2026 - MULTI-STAGE TRANSCRIPTS ===\n';
+                content += 'Generated: ' + new Date().toISOString() + '\n\n';
+                allReports.forEach(rep => {
+                    content += '==================================================\n';
+                    content += 'STAGE: ' + rep.stage.toUpperCase() + '\n';
+                    content += '==================================================\n';
+                    rep.turns.forEach(item => {
+                        const s = item.start ? new Date(item.start).toLocaleTimeString() : new Date().toLocaleTimeString();
+                        content += '[' + s + '] ' + (item.trans || item.orig || '');
+                        if (item.orig && item.trans && item.orig !== item.trans) {
+                            content += ' (Original: ' + item.orig + ')';
+                        }
+                        content += '\n';
+                    });
+                    content += '\n\n';
+                });
+
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'nerdearla-all-stages-master.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } else {
+                allReports.forEach(rep => {
+                    const cleanName = rep.stage.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+                    window.downloadSubtitleFile('nerdearla-' + cleanName, format, rep.turns);
+                });
+            }
         };
 
         // ============================================================

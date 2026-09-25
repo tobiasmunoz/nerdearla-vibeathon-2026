@@ -84,7 +84,7 @@ Las soluciones comerciales tradicionales tienen barreras infranqueables de escal
 
 - [x] **Integración con OBS Studio y vMix**: Overlays transparentes con efecto backdrop blur y auto-scroll con 1-clic (`📺 OBS`).
 - [x] **Glosario Técnico de Conferencia**: Preservación de vocabulario developer en las instrucciones de Gemini.
-- [x] **Exportación SRT / VTT / TXT**: Generación y descarga directa con códigos de tiempo precisos.
+- [x] **Exportación SRT / VTT / TXT Multi-Escenario**: Descarga directa independiente por escenario, micrófono del presentador, master consolidado y consola de producción con códigos de tiempo precisos.
 - [x] **Panel de Monitoreo de Producción**: Monitoreo en tiempo real de escenarios activos y cantidad de oyentes (`/api/sessions`).
 - [x] **Soporte Multilingüe Ampliado**: Compatible con Inglés, Español y Portugués (`pt`).
 - [x] **Transmisión de Video en Vivo en la App**: Captura simultánea de video y audio desde pestañas de Chrome dentro de las tarjetas del estudio.
@@ -103,14 +103,14 @@ La pantalla principal de la aplicación (**Multi-Stage Studio**) está diseñada
 │  ┌──────────────────────────────────────────────────────────────────────────────────────────┐  │
 │  │ 🎙️ LIVE PRESENTER BROADCAST (YOU)           [Ready / Live On Air] [VU Meter ■■■■■■□□□□]  │  │
 │  ├──────────────────────────────────────────┬───────────────────────────────────────────────┤  │
-│  │ • Mic: [🎧 Galaxy Buds Pro 3 / Built-in] │ Live Presenter Subtitles               ES → EN │  │
+│  │ • Mic: [🎧 Galaxy Buds Pro 3 / Built-in] │ Live Presenter Subtitles      Export: [SRT|VTT]│  │
 │  │ • Lang: [🇦🇷 Español] ⇄ [🇺🇸 English]    │ Original: "Bienvenidos a Nerdearla 2026..."   │  │
 │  │ • Boost: 1.5x [────●────]                │ Trans:    "Welcome to Nerdearla 2026..."      │  │
-│  │ [▶ Start Presenter Mic]  [📺 OBS Overlay]│                                               │  │
+│  │ [▶ Start Presenter Mic]  [📺 OBS Overlay]│ [📥 Export Subtitles: SRT | VTT | TXT]        │  │
 │  └──────────────────────────────────────────┴───────────────────────────────────────────────┘  │
 │                                                                                                │
 │  ┌──────────────────────────────────────────────────────────────────────────────────────────┐  │
-│  │ 🎥 Simultaneous Video Stages (Real YouTube Tabs)                  [🔗 Open All 3 Tabs ↗]   │  │
+│  │ 🎥 Simultaneous Video Stages (YouTube)     [🔗 Open 3 Tabs ↗] [📥 Master Export (TXT)]   │  │
 │  │ Quick Open: [🏛️ 1. Keynote (EN→ES) ↗] [🎙️ 2. Main Talk (ES→EN) ↗] [🔊 3. Noisy Room ↗]   │  │
 │  └──────────────────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                                │
@@ -128,6 +128,7 @@ La pantalla principal de la aplicación (**Multi-Stage Studio**) está diseñada
 │  │ │ Orig: K8s architecture │  │ │ Orig: Modelos de IA    │  │ │ Orig: Con ruido de fondo│ │      │
 │  │ │ Trans: Arquitectura K8s│  │ │ Trans: AI Models in... │  │ │ Trans: With background..│ │      │
 │  │ └──────────────────────┘ │  │ └──────────────────────┘ │  │ └──────────────────────┘ │      │
+│  │ 📥 Export: [SRT][VTT][TXT]│  │ 📥 Export: [SRT][VTT][TXT]│  │ 📥 Export: [SRT][VTT][TXT]│      │
 │  └──────────────────────────┘  └──────────────────────────┘  └──────────────────────────┘      │
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
