@@ -34,7 +34,13 @@ type SetupConfig struct {
 }
 
 type GenerationConfig struct {
-	ResponseModalities []string `json:"responseModalities,omitempty"`
+	ResponseModalities []string           `json:"responseModalities,omitempty"`
+	TranslationConfig  *TranslationConfig `json:"translationConfig,omitempty"`
+}
+
+type TranslationConfig struct {
+	TargetLanguageCode string `json:"targetLanguageCode"`
+	EchoTargetLanguage bool   `json:"echoTargetLanguage,omitempty"`
 }
 
 type SystemInstruction struct {

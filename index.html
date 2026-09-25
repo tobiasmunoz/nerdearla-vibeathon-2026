@@ -810,19 +810,35 @@
                     }
                 };
 
+                let finalizeTimer = null;
+                function checkOrScheduleFinalize() {
+                    if (transcribeDone && translateDone) {
+                        if (finalizeTimer) { clearTimeout(finalizeTimer); finalizeTimer = null; }
+                        finalizeTurn();
+                        return;
+                    }
+                    if (!finalizeTimer) {
+                        finalizeTimer = setTimeout(function() {
+                            finalizeTimer = null;
+                            finalizeTurn();
+                        }, 1200);
+                    }
+                }
+
                 // Output WebSocket to display live subtitles
                 const streamUrl = wsProto + '//' + location.host + '/ws/stream/' + sessionId;
                 connectOutputWs(streamUrl, {
-                    // Interim: speculative hypothesis — REPLACE the current line content
                     onTranscriptionInterim: function(text) {
+                        if (transcribeDone || translateDone) {
+                            if (finalizeTimer) { clearTimeout(finalizeTimer); finalizeTimer = null; }
+                            finalizeTurn();
+                        }
                         ensureActiveCard();
-                        // Show interim with a subtle opacity to distinguish from final
                         const el = currentCard.querySelector('.turn-original');
                         el.textContent = text;
                         el.style.opacity = '0.65';
                         autoScroll();
                     },
-                    // Final: authoritative committed text — lock it in at full opacity
                     onTranscription: function(text) {
                         currentTranscription = text;
                         ensureActiveCard();
@@ -832,6 +848,10 @@
                         autoScroll();
                     },
                     onTranslation: function(text) {
+                        if (transcribeDone || translateDone) {
+                            if (finalizeTimer) { clearTimeout(finalizeTimer); finalizeTimer = null; }
+                            finalizeTurn();
+                        }
                         currentTranslation += text;
                         ensureActiveCard();
                         currentCard.querySelector('.turn-translation').textContent = currentTranslation;
@@ -839,11 +859,11 @@
                     },
                     onTranscriptionDone: function() {
                         transcribeDone = true;
-                        if (transcribeDone && translateDone) finalizeTurn();
+                        checkOrScheduleFinalize();
                     },
                     onTranslationDone: function() {
                         translateDone = true;
-                        if (transcribeDone && translateDone) finalizeTurn();
+                        checkOrScheduleFinalize();
                     },
                     onStatus: function(text) {
                         addStatusCard(text);
@@ -1114,19 +1134,25 @@
             let audCurrentCard = null;
             let audOrig = '';
             let audTrans = '';
+            let audDoneTimer = null;
+
+            function sealAudienceTurn() {
+                if (audDoneTimer) { clearTimeout(audDoneTimer); audDoneTimer = null; }
+                audCurrentCard = null;
+                audOrig = '';
+                audTrans = '';
+            }
 
             audienceWs.onmessage = function(e) {
                 try {
                     const msg = JSON.parse(e.data);
                     if (msg.type === 'transcription_interim') {
-                        // Interim: replace current line with speculative text at dim opacity
                         if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
                         const el = audCurrentCard.querySelector('.audience-original');
                         el.textContent = msg.text;
                         el.style.opacity = '0.6';
                         screen.scrollTop = screen.scrollHeight;
                     } else if (msg.type === 'transcription') {
-                        // Final: commit the authoritative text at full opacity
                         audOrig = msg.text;
                         if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
                         const el = audCurrentCard.querySelector('.audience-original');
@@ -1139,9 +1165,9 @@
                         audCurrentCard.querySelector('.audience-translation').textContent = audTrans;
                         screen.scrollTop = screen.scrollHeight;
                     } else if (msg.type === 'transcription_done' || msg.type === 'translation_done') {
-                        audCurrentCard = null;
-                        audOrig = '';
-                        audTrans = '';
+                        if (!audDoneTimer) {
+                            audDoneTimer = setTimeout(sealAudienceTurn, 1000);
+                        }
                     }
                 } catch(err){}
             };

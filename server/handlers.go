@@ -275,15 +275,18 @@ func (s *Server) runDualSession(
 	defer cancel()
 
 	// 1. Make configurations
+	var langCodes []string
+	if sourceLang != "" {
+		langCodes = []string{sourceLang}
+	}
 	transcribeCfg := gemini.SetupConfig{
 		Model: "models/" + s.transcribeM,
 		GenerationConfig: &gemini.GenerationConfig{
 			ResponseModalities: []string{"TEXT"},
 		},
-		// Required: enables real-time inputTranscription and interimInputTranscription events.
-		// Without this, gemini-3.5-transcribe-live only emits model_turn text in large
-		// post-silence chunks — not the word-by-word streaming we want.
-		InputAudioTranscription: &gemini.InputAudioTranscriptionConfig{},
+		InputAudioTranscription: &gemini.InputAudioTranscriptionConfig{
+			LanguageCodes: langCodes,
+		},
 		RealtimeInputConfig: &gemini.RealtimeInputConfig{
 			ActivityHandling: "NO_INTERRUPTION",
 			AutomaticActivityDetection: &gemini.AutomaticActivityDetection{
@@ -296,32 +299,21 @@ func (s *Server) runDualSession(
 		},
 	}
 
-	src := langNames[sourceLang]
-	if src == "" {
-		src = sourceLang
-	}
-	tgt := langNames[targetLang]
-	if tgt == "" {
-		tgt = targetLang
+	targetCode := targetLang
+	if targetCode == "" {
+		targetCode = "es"
 	}
 
-	instruction := fmt.Sprintf(
-		"Translate the incoming %s speech into %s text for a developer conference (Nerdearla). "+
-			"Output ONLY the %s translation — no labels, no quotes, no conversational filler or commentary. "+
-			"Stream partial translations immediately token-by-token, do not wait for complete sentences. "+
-			"GLOSSARY & PRESERVATION: Keep technical terms, commands, and product names in English/standard form "+
-			"(e.g., Kubernetes, Golang, Docker, GraphQL, gRPC, Kafka, PostgreSQL, CI/CD, Frontend, Backend, Open Source, Nerdearla, AWS, GCP). "+
-			"Speakers may use Argentine colloquialisms, Spanglish, or technical jargon — translate the semantic meaning cleanly into natural %s. Skip filler words.",
-		src, tgt, tgt, tgt,
-	)
-
+	// Translation model requires TranslationConfig to translate into target language (e.g. "pt", "es", "en")
+	// and responseModalities=["AUDIO"] with outputAudioTranscription.
 	translateCfg := gemini.SetupConfig{
 		Model: "models/" + s.translateM,
 		GenerationConfig: &gemini.GenerationConfig{
-			ResponseModalities: []string{"TEXT"},
-		},
-		SystemInstruction: &gemini.SystemInstruction{
-			Parts: []gemini.ContentPart{{Text: instruction}},
+			ResponseModalities: []string{"AUDIO"},
+			TranslationConfig: &gemini.TranslationConfig{
+				TargetLanguageCode: targetCode,
+				EchoTargetLanguage: true,
+			},
 		},
 		OutputAudioTranscription: &gemini.AudioTranscriptionConfig{},
 		RealtimeInputConfig: &gemini.RealtimeInputConfig{
@@ -370,29 +362,53 @@ func (s *Server) runDualSession(
 	defer translateSess.Close()
 
 	log.Printf("[%s] Both Gemini sessions established (%s + %s)", sessionID, s.transcribeM, s.translateM)
-	broadcaster.Broadcast("status", "Connected — translating...")
+	broadcaster.Broadcast("status", fmt.Sprintf("Connected — translating to %s...", strings.ToUpper(targetCode)))
 
 	// 3. Receive loops
-	go s.transcribeReceiveLoop(sessCtx, transcribeSess, broadcaster, sessionID)
-	go s.translateReceiveLoop(sessCtx, translateSess, broadcaster, sessionID)
+	go s.transcribeReceiveLoop(sessCtx, cancel, transcribeSess, broadcaster, sessionID)
+	go s.translateReceiveLoop(sessCtx, cancel, translateSess, broadcaster, sessionID)
 
-	// 4. Periodic flush goroutine
+	// 4. Sequential FIFO audio workers (guarantees in-order PCM delivery to Gemini)
+	transcribeAudioCh := make(chan []byte, 200)
+	translateAudioCh := make(chan []byte, 200)
+
 	go func() {
-		ticker := time.NewTicker(3 * time.Second)
-		defer ticker.Stop()
 		for {
 			select {
 			case <-sessCtx.Done():
 				return
-			case <-ticker.C:
-				_ = transcribeSess.SendActivityEnd()
-				time.Sleep(50 * time.Millisecond)
-				_ = transcribeSess.SendActivityStart()
+			case chunk, ok := <-transcribeAudioCh:
+				if !ok {
+					return
+				}
+				if err := transcribeSess.SendAudio(chunk); err != nil {
+					log.Printf("[%s][transcribe] SendAudio error: %v", sessionID, err)
+					cancel()
+					return
+				}
 			}
 		}
 	}()
 
-	// 5. Ingest loop: Read PCM from audio WebSocket and forward to both models
+	go func() {
+		for {
+			select {
+			case <-sessCtx.Done():
+				return
+			case chunk, ok := <-translateAudioCh:
+				if !ok {
+					return
+				}
+				if err := translateSess.SendAudio(chunk); err != nil {
+					log.Printf("[%s][translate] SendAudio error: %v", sessionID, err)
+					cancel()
+					return
+				}
+			}
+		}
+	}()
+
+	// 5. Ingest loop: Read PCM from audio WebSocket and forward sequentially to both workers
 	for {
 		msgType, pcmData, err := wsConn.Read(sessCtx)
 		if err != nil {
@@ -408,23 +424,26 @@ func (s *Server) runDualSession(
 			continue
 		}
 
-		// Forward to both sessions non-blocking/in background goroutines
-		go func(data []byte) {
-			_ = transcribeSess.SendAudio(data)
-		}(pcmData)
+		select {
+		case transcribeAudioCh <- pcmData:
+		default:
+		}
 
-		go func(data []byte) {
-			_ = translateSess.SendAudio(data)
-		}(pcmData)
+		select {
+		case translateAudioCh <- pcmData:
+		default:
+		}
 	}
 }
 
 func (s *Server) transcribeReceiveLoop(
 	ctx context.Context,
+	cancel context.CancelFunc,
 	session *gemini.LiveSession,
 	broadcaster *broadcast.SessionBroadcaster,
 	sessionID string,
 ) {
+	defer cancel()
 	for {
 		select {
 		case <-ctx.Done():
@@ -477,10 +496,12 @@ func (s *Server) transcribeReceiveLoop(
 
 func (s *Server) translateReceiveLoop(
 	ctx context.Context,
+	cancel context.CancelFunc,
 	session *gemini.LiveSession,
 	broadcaster *broadcast.SessionBroadcaster,
 	sessionID string,
 ) {
+	defer cancel()
 	for {
 		select {
 		case <-ctx.Done():
