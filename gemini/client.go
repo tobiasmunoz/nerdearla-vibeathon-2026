@@ -25,11 +25,12 @@ type ClientSetupMessage struct {
 }
 
 type SetupConfig struct {
-	Model                    string                    `json:"model"`
-	GenerationConfig         *GenerationConfig         `json:"generationConfig,omitempty"`
-	SystemInstruction        *SystemInstruction        `json:"systemInstruction,omitempty"`
-	OutputAudioTranscription *AudioTranscriptionConfig `json:"outputAudioTranscription,omitempty"`
-	RealtimeInputConfig      *RealtimeInputConfig      `json:"realtimeInputConfig,omitempty"`
+	Model                    string                         `json:"model"`
+	GenerationConfig         *GenerationConfig              `json:"generationConfig,omitempty"`
+	SystemInstruction        *SystemInstruction             `json:"systemInstruction,omitempty"`
+	InputAudioTranscription  *InputAudioTranscriptionConfig `json:"inputAudioTranscription,omitempty"`
+	OutputAudioTranscription *AudioTranscriptionConfig      `json:"outputAudioTranscription,omitempty"`
+	RealtimeInputConfig      *RealtimeInputConfig           `json:"realtimeInputConfig,omitempty"`
 }
 
 type GenerationConfig struct {
@@ -42,6 +43,13 @@ type SystemInstruction struct {
 
 type ContentPart struct {
 	Text string `json:"text,omitempty"`
+}
+
+// InputAudioTranscriptionConfig enables inputTranscription and interimInputTranscription
+// events in server responses. Required for gemini-3.5-transcribe-live to stream
+// real-time word-by-word transcriptions.
+type InputAudioTranscriptionConfig struct {
+	LanguageCodes []string `json:"languageCodes,omitempty"` // empty = auto-detect
 }
 
 type AudioTranscriptionConfig struct{}
@@ -92,20 +100,19 @@ type ServerResponse struct {
 }
 
 type ServerContent struct {
-	ModelTurn           *ModelTurn           `json:"modelTurn,omitempty"`
-	OutputTranscription *OutputTranscription `json:"outputTranscription,omitempty"`
-	InputTranscription  *InputTranscription  `json:"inputTranscription,omitempty"`
-	TurnComplete        bool                 `json:"turnComplete,omitempty"`
+	ModelTurn                 *ModelTurn      `json:"modelTurn,omitempty"`
+	OutputTranscription       *InputTranscription `json:"outputTranscription,omitempty"`
+	InputTranscription        *InputTranscription `json:"inputTranscription,omitempty"`
+	InterimInputTranscription *InputTranscription `json:"interimInputTranscription,omitempty"`
+	TurnComplete              bool            `json:"turnComplete,omitempty"`
 }
 
 type ModelTurn struct {
 	Parts []ContentPart `json:"parts,omitempty"`
 }
 
-type OutputTranscription struct {
-	Text string `json:"text,omitempty"`
-}
-
+// InputTranscription is used for inputTranscription, interimInputTranscription,
+// and outputTranscription server events.
 type InputTranscription struct {
 	Text string `json:"text,omitempty"`
 }

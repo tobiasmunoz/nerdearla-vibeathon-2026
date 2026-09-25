@@ -642,21 +642,29 @@
         if (isOverlayMode) {
             document.body.classList.add('overlay-mode');
             const targetSession = overlaySessionId || 'stage-1';
-            let overlayTranscription = '';
             let overlayTranslation = '';
 
             connectSSE(targetSession, {
-                onTranscription: function(text) {
-                    overlayTranscription += text;
+                // Interim: replace live preview of transcription (speculative, dim)
+                onTranscriptionInterim: function(text) {
                     const el = document.getElementById('overlay-transcription');
-                    el.textContent = trimText(overlayTranscription, 140);
+                    el.textContent = trimText(text, 140);
+                    el.style.opacity = '0.55';
+                },
+                // Final: commit at full opacity
+                onTranscription: function(text) {
+                    const el = document.getElementById('overlay-transcription');
+                    el.textContent = trimText(text, 140);
+                    el.style.opacity = '1';
                 },
                 onTranslation: function(text) {
                     overlayTranslation += text;
                     const el = document.getElementById('overlay-translation');
                     el.textContent = trimText(overlayTranslation, 140);
                 },
-                onTranscriptionDone: function() { overlayTranscription = ''; },
+                onTranscriptionDone: function() {
+                    document.getElementById('overlay-transcription').textContent = '';
+                },
                 onTranslationDone: function() { overlayTranslation = ''; },
                 onStatus: function() {}
             });
@@ -805,10 +813,22 @@
                 // Output WebSocket to display live subtitles
                 const streamUrl = wsProto + '//' + location.host + '/ws/stream/' + sessionId;
                 connectOutputWs(streamUrl, {
-                    onTranscription: function(text) {
-                        currentTranscription += text;
+                    // Interim: speculative hypothesis — REPLACE the current line content
+                    onTranscriptionInterim: function(text) {
                         ensureActiveCard();
-                        currentCard.querySelector('.turn-original').textContent = currentTranscription;
+                        // Show interim with a subtle opacity to distinguish from final
+                        const el = currentCard.querySelector('.turn-original');
+                        el.textContent = text;
+                        el.style.opacity = '0.65';
+                        autoScroll();
+                    },
+                    // Final: authoritative committed text — lock it in at full opacity
+                    onTranscription: function(text) {
+                        currentTranscription = text;
+                        ensureActiveCard();
+                        const el = currentCard.querySelector('.turn-original');
+                        el.textContent = currentTranscription;
+                        el.style.opacity = '1';
                         autoScroll();
                     },
                     onTranslation: function(text) {
@@ -1098,10 +1118,20 @@
             audienceWs.onmessage = function(e) {
                 try {
                     const msg = JSON.parse(e.data);
-                    if (msg.type === 'transcription') {
-                        audOrig += msg.text;
+                    if (msg.type === 'transcription_interim') {
+                        // Interim: replace current line with speculative text at dim opacity
                         if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
-                        audCurrentCard.querySelector('.audience-original').textContent = audOrig;
+                        const el = audCurrentCard.querySelector('.audience-original');
+                        el.textContent = msg.text;
+                        el.style.opacity = '0.6';
+                        screen.scrollTop = screen.scrollHeight;
+                    } else if (msg.type === 'transcription') {
+                        // Final: commit the authoritative text at full opacity
+                        audOrig = msg.text;
+                        if (!audCurrentCard) audCurrentCard = createAudienceCard(screen);
+                        const el = audCurrentCard.querySelector('.audience-original');
+                        el.textContent = audOrig;
+                        el.style.opacity = '1';
                         screen.scrollTop = screen.scrollHeight;
                     } else if (msg.type === 'translation') {
                         audTrans += msg.text;
@@ -1195,7 +1225,11 @@
             outputWs.onmessage = function(e) {
                 try {
                     const msg = JSON.parse(e.data);
-                    if (msg.type === 'transcription') callbacks.onTranscription(msg.text);
+                    // transcription_interim: speculative partial — REPLACE current text (not append)
+                    if (msg.type === 'transcription_interim') {
+                        if (callbacks.onTranscriptionInterim) callbacks.onTranscriptionInterim(msg.text);
+                    }
+                    else if (msg.type === 'transcription') callbacks.onTranscription(msg.text);
                     else if (msg.type === 'translation') callbacks.onTranslation(msg.text);
                     else if (msg.type === 'transcription_done') callbacks.onTranscriptionDone();
                     else if (msg.type === 'translation_done') callbacks.onTranslationDone();
@@ -1207,6 +1241,10 @@
         function connectSSE(sessionId, callbacks) {
             if (eventSource) eventSource.close();
             eventSource = new EventSource('/stream/' + sessionId);
+            // Interim transcription (speculative, low-latency live preview)
+            eventSource.addEventListener('transcription_interim', function(e) {
+                if (e.data && callbacks.onTranscriptionInterim) callbacks.onTranscriptionInterim(e.data);
+            });
             eventSource.addEventListener('transcription', function(e) { if (e.data) callbacks.onTranscription(e.data); });
             eventSource.addEventListener('translation', function(e) { if (e.data) callbacks.onTranslation(e.data); });
             eventSource.addEventListener('transcription_done', function() { callbacks.onTranscriptionDone(); });

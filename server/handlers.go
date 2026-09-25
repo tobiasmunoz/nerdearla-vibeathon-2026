@@ -280,6 +280,10 @@ func (s *Server) runDualSession(
 		GenerationConfig: &gemini.GenerationConfig{
 			ResponseModalities: []string{"TEXT"},
 		},
+		// Required: enables real-time inputTranscription and interimInputTranscription events.
+		// Without this, gemini-3.5-transcribe-live only emits model_turn text in large
+		// post-silence chunks — not the word-by-word streaming we want.
+		InputAudioTranscription: &gemini.InputAudioTranscriptionConfig{},
 		RealtimeInputConfig: &gemini.RealtimeInputConfig{
 			ActivityHandling: "NO_INTERRUPTION",
 			AutomaticActivityDetection: &gemini.AutomaticActivityDetection{
@@ -439,18 +443,29 @@ func (s *Server) transcribeReceiveLoop(
 			continue
 		}
 
+		// Interim: low-latency speculative partial hypothesis updated while speaker talks.
+		// Sent as "transcription_interim" so the UI can REPLACE (not append) the current line.
+		if sc.InterimInputTranscription != nil && sc.InterimInputTranscription.Text != "" {
+			log.Printf("[%s][transcribe] ⟳ interim: %q", sessionID, sc.InterimInputTranscription.Text)
+			broadcaster.Broadcast("transcription_interim", sc.InterimInputTranscription.Text)
+		}
+
+		// Final: authoritative committed transcript emitted when speech is finalized.
+		// Sent as "transcription" — UI commits this text permanently.
+		if sc.InputTranscription != nil && sc.InputTranscription.Text != "" {
+			log.Printf("[%s][transcribe] ✅ final: %q", sessionID, sc.InputTranscription.Text)
+			broadcaster.Broadcast("transcription", sc.InputTranscription.Text)
+		}
+
+		// Fallback: model_turn text parts (only present when inputAudioTranscription is NOT set)
+		// Kept here as a safety net but should no longer fire with the correct config.
 		if sc.ModelTurn != nil {
 			for _, part := range sc.ModelTurn.Parts {
 				if part.Text != "" {
-					log.Printf("[%s][transcribe] ✅ text: %q", sessionID, part.Text)
+					log.Printf("[%s][transcribe] ⚠ model_turn fallback: %q", sessionID, part.Text)
 					broadcaster.Broadcast("transcription", part.Text)
 				}
 			}
-		}
-
-		if sc.InputTranscription != nil && sc.InputTranscription.Text != "" {
-			log.Printf("[%s][transcribe] ✅ input_transcription: %q", sessionID, sc.InputTranscription.Text)
-			broadcaster.Broadcast("transcription", sc.InputTranscription.Text)
 		}
 
 		if sc.TurnComplete {
